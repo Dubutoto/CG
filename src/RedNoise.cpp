@@ -3,19 +3,34 @@
 #include <Utils.h>
 #include <fstream>
 #include <vector>
+#include <glm/glm.hpp>
 
 #define WIDTH 320
 #define HEIGHT 240
 
 std::vector <float> interpolateSingleFloats(float from, float to, int numberOfValues){
     std::vector <float> result;
-    float term = ((to-from)/(numberOfValues-1));
+    float term = ((to-from)/ float (numberOfValues-1));
     float initialValue = from;
-    for(int i=0; i < numberOfValues; i++){
+    for (int i = 0; i < numberOfValues; i++){
         result.push_back(initialValue);
         initialValue = initialValue + term;
     }
     return result;
+}
+
+std::vector <glm::vec3> interpolateThreeElementValues(glm::vec3 from, glm::vec3 to, int numberOfValues){
+    std::vector <glm::vec3> result;
+    glm::vec3 term = ((to-from)/ float (numberOfValues-1));
+    glm::vec3 initialValue = from;
+    for (int i = 0; i < numberOfValues; i++){
+        result.push_back(initialValue);
+        initialValue = initialValue + term;
+
+    }
+    return result;
+
+
 }
 
 void draw(DrawingWindow &window) {
@@ -54,6 +69,12 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
 int main(int argc, char *argv[]) {
 	DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
 	SDL_Event event;
+
+    std::vector<float> result;
+    result = interpolateSingleFloats(2.2, 8.5, 7);
+    for (size_t i=0; i<result.size(); i++) std::cout << result[i] << " ";
+    std::cout << std::endl;
+
 	while (true) {
 		// We MUST poll for events - otherwise the window will freeze !
 		if (window.pollForInputEvents(event)) handleEvent(event, window);
@@ -61,8 +82,5 @@ int main(int argc, char *argv[]) {
 		// Need to render the frame at the end, or nothing actually gets shown on the screen !
 		window.renderFrame();
 	}
-	std::vector<float> result;
-    result = interpolateSingleFloats(2.2, 8.5, 7);
-    for(size_t i=0; i<result.size(); i++) std::cout << result[i] << " ";
-    std::cout << std::endl;
+
 }
