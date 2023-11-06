@@ -5,7 +5,7 @@
 #include <vector>
 #include <glm/glm.hpp>
 #include <CanvasPoint.h>
-#include <colour.h>
+#include <Colour.h>
 #define WIDTH 320
 #define HEIGHT 240
 
@@ -33,6 +33,8 @@ std::vector <glm::vec3> interpolateThreeElementValues(glm::vec3 from, glm::vec3 
 
 }
 
+
+
 void draw(DrawingWindow &window) {
 	window.clearPixels();
     std::vector <float> greyScales = interpolateSingleFloats(255,0,WIDTH);
@@ -40,14 +42,15 @@ void draw(DrawingWindow &window) {
 		for (size_t x = 0; x < window.width; x++) {
 
             /*
-            float red = rand() % 256;
-			float green = 0.0;
-			float blue = 0.0;
-            */
+                       float red = rand() % 256;
+                       float green = 0.0;
+                       float blue = 0.0;
+             */
 
-            float red = greyScales[x];
-            float green = greyScales[x];
-            float blue = greyScales[x];
+                       float red = greyScales[x];
+                       float green = greyScales[x];
+                       float blue = greyScales[x];`
+
 			uint32_t colour = (255 << 24) + (int(red) << 16) + (int(green) << 8) + int(blue);
 			window.setPixelColour(x, y, colour);
 		}
@@ -74,7 +77,37 @@ void drawColour(DrawingWindow &window) {
         }
     }
 }
+//week 3
 
+uint32_t setColour(Colour col) {
+    return (255 << 24) + (col.red << 16) + (col.green << 8) + col.blue;
+}
+
+void drawLine (CanvasPoint from, CanvasPoint to, std::vector<std::vector<float>> &distance, DrawingWindow &window, Colour col) {
+
+   float xDiff = to.x - from.y;
+   float yDiff = to.y - from.y;
+   float zDiff = to.depth - from.depth;
+
+   float numberOfSteps = std::max(abs(xDiff), abs(yDiff));
+
+   float xStepSize = xDiff / numberOfSteps;
+   float yStepSize = yDiff / numberOfSteps;
+   float zStepSize = zDiff / numberOfSteps;
+
+    for (float i = 0.0; i < numberOfSteps; i++) {
+        float x = round(from.x + (xStepSize * i));
+        float y = round(from.y + (yStepSize * i));
+        float z = 1/(from.depth + (zStepSize*i));
+
+        if( x >= 0 && y >= 0 && y < distance.size() && x < distance[y].size() && distance[y][x] < z) {
+            window.setPixelColour(round(x), round(y), setColour(col));
+            distance[y][x] = z;
+        }
+    }
+}
+
+// void drawCustomLine ()
 
 void handleEvent(SDL_Event event, DrawingWindow &window) {
 	if (event.type == SDL_KEYDOWN) {
@@ -93,7 +126,8 @@ int main(int argc, char *argv[]) {
 	SDL_Event event;
 
     //test code for interpolateSingleElementValue
-   /* std::vector<float> result;
+   /*
+    std::vector<float> result;
     result = interpolateSingleFloats(2.2, 8.5, 7);
     for(size_t i=0; i<result.size(); i++) std::cout << result[i] << " ";
     std::cout << std::endl;
@@ -112,7 +146,7 @@ int main(int argc, char *argv[]) {
 	while (true) {
 		// We MUST poll for events - otherwise the window will freeze !
 		if (window.pollForInputEvents(event)) handleEvent(event, window);
-		drawColour(window);
+        draw(window);
 		// Need to render the frame at the end, or nothing actually gets shown on the screen !
 		window.renderFrame();
 	}
