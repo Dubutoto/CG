@@ -29,32 +29,65 @@ std::vector <glm::vec3> interpolateThreeElementValues(glm::vec3 from, glm::vec3 
         result.push_back(from + unit * a);
     }
     return result;
-
-
 }
 
+std::vector<CanvasPoint> interpolateCanvasPoint(CanvasPoint from, CanvasPoint to, int numberOfValues){
+    std::vector<CanvasPoint> result;
+    float xPoint =(to.x - from.x) / (float)(numberOfValues-1);
+    float yPoint =(to.y - from.y) / (float)(numberOfValues-1);
+    for (int i = 0; i < numberOfValues; i++) {
+        result.push_back(CanvasPoint(from.x + xPoint*i, from.y + yPoint*i));
+    }
+    return result;
+}
 
+void drawLine (CanvasPoint from, CanvasPoint to, DrawingWindow &window, Colour col) {
+
+    float xDiff = to.x - from.y;
+    float yDiff = to.y - from.y;
+
+    float numberOfSteps = std::max(abs(xDiff), abs(yDiff));
+
+    float xStepSize = xDiff / numberOfSteps;
+    float yStepSize = yDiff / numberOfSteps;
+    uint32_t colour = (255 << 24) + (col.red << 16) + (col.green << 8) + col.blue;
+
+    for (float i = 0.0; i < numberOfSteps; i++) {
+        float x = from.x + (xStepSize * i);
+        float y = from.y + (yStepSize * i);
+        window.setPixelColour(round(x),round(y), colour);
+    }
+}
 
 void draw(DrawingWindow &window) {
-	window.clearPixels();
+	// window.clearPixels();
+    /*
     std::vector <float> greyScales = interpolateSingleFloats(255,0,WIDTH);
 	for (size_t y = 0; y < window.height; y++) {
 		for (size_t x = 0; x < window.width; x++) {
 
-            /*
+
                        float red = rand() % 256;
                        float green = 0.0;
                        float blue = 0.0;
-             */
+
 
                        float red = greyScales[x];
                        float green = greyScales[x];
-                       float blue = greyScales[x];`
+                       float blue = greyScales[x];
 
 			uint32_t colour = (255 << 24) + (int(red) << 16) + (int(green) << 8) + int(blue);
 			window.setPixelColour(x, y, colour);
-		}
-	}
+     */
+    Colour col = Colour(255,255,255);
+    drawLine(CanvasPoint(0,0), CanvasPoint(window.width*1/2  , window.height*1/2), window, col);
+    drawLine(CanvasPoint(160,120), CanvasPoint(280  , 0), window, col);
+    drawLine(CanvasPoint(160,0), CanvasPoint(0  , 240), window, col);
+
+    //drawLine(CanvasPoint(window.width/2,0), CanvasPoint(window.width/2, window.height/2), window, col);
+    drawLine(CanvasPoint(window.width*1/3,window.height/2), CanvasPoint(window.width*2/3, window.height/2), window, col);
+
+
 }
 
 void drawColour(DrawingWindow &window) {
@@ -77,35 +110,9 @@ void drawColour(DrawingWindow &window) {
         }
     }
 }
-//week 3
 
-uint32_t setColour(Colour col) {
-    return (255 << 24) + (col.red << 16) + (col.green << 8) + col.blue;
-}
 
-void drawLine (CanvasPoint from, CanvasPoint to, std::vector<std::vector<float>> &distance, DrawingWindow &window, Colour col) {
 
-   float xDiff = to.x - from.y;
-   float yDiff = to.y - from.y;
-   float zDiff = to.depth - from.depth;
-
-   float numberOfSteps = std::max(abs(xDiff), abs(yDiff));
-
-   float xStepSize = xDiff / numberOfSteps;
-   float yStepSize = yDiff / numberOfSteps;
-   float zStepSize = zDiff / numberOfSteps;
-
-    for (float i = 0.0; i < numberOfSteps; i++) {
-        float x = round(from.x + (xStepSize * i));
-        float y = round(from.y + (yStepSize * i));
-        float z = 1/(from.depth + (zStepSize*i));
-
-        if( x >= 0 && y >= 0 && y < distance.size() && x < distance[y].size() && distance[y][x] < z) {
-            window.setPixelColour(round(x), round(y), setColour(col));
-            distance[y][x] = z;
-        }
-    }
-}
 
 // void drawCustomLine ()
 
@@ -134,6 +141,7 @@ int main(int argc, char *argv[]) {
     */
 
     //test code for interpolateThreeElementValues
+    /*
     std::vector<glm::vec3> result;
     glm::vec3 from(1.0, 4.0, 9.2);
     glm::vec3 to(4.0, 1.0, 9.8);
@@ -142,7 +150,9 @@ int main(int argc, char *argv[]) {
 
         std::cout << "(" << result[i][0] << "," << result[i][1] << "," << result [i][2] << ")" << " ";
         std::cout << std::endl;
+
     }
+     */
 	while (true) {
 		// We MUST poll for events - otherwise the window will freeze !
 		if (window.pollForInputEvents(event)) handleEvent(event, window);
