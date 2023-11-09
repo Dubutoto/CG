@@ -61,6 +61,13 @@ void drawLine (CanvasPoint from, CanvasPoint to, DrawingWindow &window, Colour c
     }
 }
 
+void drawTriangle(DrawingWindow &window, CanvasTriangle t, Colour col) {
+
+    drawLine(t.v0(), t.v1(),window, col);
+    drawLine(t.v1(), t.v2(),window, col);
+    drawLine(t.v2(), t.v0(),window, col);
+}
+
 void unfilledTriangle(DrawingWindow &window) {
     CanvasPoint v0 = CanvasPoint(rand() % window.width - 1, rand() % window.height - 1);
     CanvasPoint v1 = CanvasPoint(rand() % window.width - 1, rand() % window.height - 1);
@@ -68,18 +75,10 @@ void unfilledTriangle(DrawingWindow &window) {
     CanvasTriangle t = CanvasTriangle(v0, v1, v2);
 
     Colour col = Colour(rand() % 256, rand() % 256, rand() % 256);
-    drawLine(t.v0(), t.v1(), window, col);
-    drawLine(t.v1(), t.v2(),window, col);
-    drawLine(t.v2(), t.v0(),window, col);
+    drawTriangle(window,t,col);
 }
-// add an additional parameter
-void unfilledTriangle(DrawingWindow &window, CanvasPoint v0, CanvasPoint v1, CanvasPoint v2, Colour col) {
-    CanvasTriangle t = CanvasTriangle(v0, v1, v2);
 
-    drawLine(t.v0(), t.v1(),window, col);
-    drawLine(t.v1(), t.v2(),window, col);
-    drawLine(t.v2(), t.v0(),window, col);
-}
+
 
     void draw(DrawingWindow &window) {
         window.clearPixels();
