@@ -1,11 +1,13 @@
 #include <CanvasTriangle.h>
-#include <DrawingWindow.h>
-#include <Utils.h>
-#include <fstream>
-#include <vector>
-#include <glm/glm.hpp>
 #include <CanvasPoint.h>
 #include <Colour.h>
+#include <DrawingWindow.h>
+#include <fstream>
+#include <Utils.h>
+#include <glm/glm.hpp>
+#include <vector>
+
+
 #define WIDTH 320
 #define HEIGHT 240
 
@@ -30,7 +32,7 @@ std::vector <glm::vec3> interpolateThreeElementValues(glm::vec3 from, glm::vec3 
     }
     return result;
 }
-
+/*
 std::vector<CanvasPoint> interpolateCanvasPoint(CanvasPoint from, CanvasPoint to, int numberOfValues){
     std::vector<CanvasPoint> result;
     float xPoint =(to.x - from.x) / (float)(numberOfValues-1);
@@ -40,12 +42,12 @@ std::vector<CanvasPoint> interpolateCanvasPoint(CanvasPoint from, CanvasPoint to
     }
     return result;
 }
-
+*/
 void drawLine (CanvasPoint from, CanvasPoint to, DrawingWindow &window, Colour col) {
 
     float xDiff = to.x - from.y;
     float yDiff = to.y - from.y;
-    float numberOfSteps = std::max(abs(xDiff), abs(yDiff));
+    float numberOfSteps = std::max(abs(xDiff)+1, abs(yDiff)+1);
     float xStepSize = xDiff / numberOfSteps;
     float yStepSize = yDiff / numberOfSteps;
     uint32_t colour = (255 << 24) + (col.red << 16) + (col.green << 8) + col.blue;
@@ -54,6 +56,26 @@ void drawLine (CanvasPoint from, CanvasPoint to, DrawingWindow &window, Colour c
         float y = from.y + (yStepSize * i);
         window.setPixelColour(round(x),round(y), colour);
     }
+}
+
+void unfilledTriangle(DrawingWindow &window) {
+    CanvasPoint v0 = CanvasPoint(rand() % window.width - 1, rand() % window.height - 1);
+    CanvasPoint v1 = CanvasPoint(rand() % window.width - 1, rand() % window.height - 1);
+    CanvasPoint v2 = CanvasPoint(rand() % window.width - 1, rand() % window.height - 1);
+    CanvasTriangle t = CanvasTriangle(v0, v1, v2);
+
+    Colour col = Colour(rand() % 256, rand() % 256, rand() % 256);
+    drawLine(t.v0(), t.v1(), window, col);
+    drawLine(t.v1(), t.v2(),window, col);
+    drawLine(t.v2(), t.v0(),window, col);
+}
+// add an additional parameter
+void unfilledTriangle(DrawingWindow &window, CanvasPoint v0, CanvasPoint v1, CanvasPoint v2, Colour col) {
+    CanvasTriangle t = CanvasTriangle(v0, v1, v2);
+
+    drawLine(t.v0(), t.v1(), window, col);
+    drawLine(t.v1(), t.v2(),window, col);
+    drawLine(t.v2(), t.v0(),window, col);
 }
 
 void draw(DrawingWindow &window) {
@@ -65,9 +87,9 @@ void draw(DrawingWindow &window) {
           //  float red = rand() % 256;
           //  float green = 0.0;
           //  float blue = 0.0;
-                       float red = greyScales[x];
-                       float green = greyScales[x];
-                       float blue = greyScales[x];
+            // float red = greyScales[x];
+            // float green = greyScales[x];
+            // float blue = greyScales[x];
 
             uint32_t colour = (255 << 24) + (int(red) << 16) + (int(green) << 8) + int(blue);
             window.setPixelColour(x, y, colour);
@@ -75,12 +97,11 @@ void draw(DrawingWindow &window) {
     }
     */
 //week3-ch2
-Colour col = Colour(255, 255, 255);
-drawLine(CanvasPoint(0, 0), CanvasPoint(window.width * 1 / 2, window.height * 1 / 2), window, col);
-drawLine(CanvasPoint(window.width * 1 / 2, window.height * 1 / 2), CanvasPoint(window.width - 40, 0), window, col);
-drawLine(CanvasPoint(window.width/2, 0), CanvasPoint(0, window.height), window, col);
-drawLine(CanvasPoint(window.width / 3, window.height / 2),
-        CanvasPoint(window.width * 2 / 3, window.height / 2), window, col);
+//Colour col = Colour(255, 255, 255);
+//drawLine(CanvasPoint(0, 0), CanvasPoint(window.width * 1 / 2, window.height * 1 / 2), window, col);
+//drawLine(CanvasPoint(window.width * 1 / 2, window.height * 1 / 2), CanvasPoint(window.width - 40, 0), window, col);
+//drawLine(CanvasPoint(window.width/2, 0), CanvasPoint(0, window.height), window, col);
+//drawLine(CanvasPoint(window.width / 3, window.height / 2), CanvasPoint(window.width * 2 / 3, window.height / 2), window, col);
 
 }
 
@@ -108,51 +129,49 @@ void drawColour(DrawingWindow &window) {
 
 
 
-// void drawCustomLine ()
+// add an event handling function for several keys
 
-        void handleEvent(SDL_Event event, DrawingWindow &window) {
-            if (event.type == SDL_KEYDOWN) {
-                if (event.key.keysym.sym == SDLK_LEFT) std::cout << "LEFT" << std::endl;
-                else if (event.key.keysym.sym == SDLK_RIGHT) std::cout << "RIGHT" << std::endl;
-                else if (event.key.keysym.sym == SDLK_UP) std::cout << "UP" << std::endl;
-                else if (event.key.keysym.sym == SDLK_DOWN) std::cout << "DOWN" << std::endl;
-            } else if (event.type == SDL_MOUSEBUTTONDOWN) {
-                window.savePPM("output.ppm");
-                window.saveBMP("output.bmp");
-            }
-        }
+void handleEvent(SDL_Event event, DrawingWindow &window) {
+    if (event.type == SDL_KEYDOWN) {
+        if (event.key.keysym.sym == SDLK_LEFT) std::cout << "LEFT" << std::endl;
+        else if (event.key.keysym.sym == SDLK_RIGHT) std::cout << "RIGHT" << std::endl;
+        else if (event.key.keysym.sym == SDLK_UP) std::cout << "UP" << std::endl;
+        else if (event.key.keysym.sym == SDLK_DOWN) std::cout << "DOWN" << std::endl;
+        else if (event.key.keysym.sym == SDLK_u) unfilledTriangle(window);
+    } else if (event.type == SDL_MOUSEBUTTONDOWN) {
+        window.savePPM("output.ppm");
+        window.saveBMP("output.bmp");
+    }
+}
 
-        int main(int argc, char *argv[]) {
-            DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
-            SDL_Event event;
+int main(int argc, char *argv[]) {
+    DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
+    SDL_Event event;
 
-            //test code for interpolateSingleElementValue
-            /*
-             std::vector<float> result;
-             result = interpolateSingleFloats(2.2, 8.5, 7);
-             for(size_t i=0; i<result.size(); i++) std::cout << result[i] << " ";
-             std::cout << std::endl;
-             */
+    //test code for interpolateSingleElementValue
+    /*
+    std::vector<float> result;
+    result = interpolateSingleFloats(2.2, 8.5, 7);
+    for(size_t i=0; i<result.size(); i++) std::cout << result[i] << " ";
+    std::cout << std::endl;
+    */
 
-            //test code for interpolateThreeElementValues
-            /*
-            std::vector<glm::vec3> result;
-            glm::vec3 from(1.0, 4.0, 9.2);
-            glm::vec3 to(4.0, 1.0, 9.8);
-            result = interpolateThreeElementValues(from, to, 4);
-            for(size_t i=0; i<result.size(); i++) {
-
-                std::cout << "(" << result[i][0] << "," << result[i][1] << "," << result [i][2] << ")" << " ";
-                std::cout << std::endl;
-
-            }
-             */
-            while (true) {
-                // We MUST poll for events - otherwise the window will freeze !
-                if (window.pollForInputEvents(event)) handleEvent(event, window);
-                draw(window);
-                // Need to render the frame at the end, or nothing actually gets shown on the screen !
-                window.renderFrame();
-            }
-
-        }
+    //test code for interpolateThreeElementValues
+    /*
+    std::vector<glm::vec3> result;
+    glm::vec3 from(1.0, 4.0, 9.2);
+    glm::vec3 to(4.0, 1.0, 9.8);
+    result = interpolateThreeElementValues(from, to, 4);
+    for(size_t i=0; i<result.size(); i++) {
+    std::cout << "(" << result[i][0] << "," << result[i][1] << "," << result [i][2] << ")" << " ";
+    std::cout << std::endl;
+    }
+    */
+    while (true) {
+        // We MUST poll for events - otherwise the window will freeze !
+        if (window.pollForInputEvents(event)) handleEvent(event, window);
+        draw(window);
+        // Need to render the frame at the end, or nothing actually gets shown on the screen !
+        window.renderFrame();
+    }
+}
