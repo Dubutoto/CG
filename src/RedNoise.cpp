@@ -61,23 +61,28 @@ void drawLine (CanvasPoint from, CanvasPoint to, DrawingWindow &window, Colour c
     }
 }
 
-void drawTriangle(DrawingWindow &window, CanvasPoint v0, CanvasPoint v1, CanvasPoint v2, Colour col) {
-    CanvasTriangle t = CanvasTriangle(v0, v1, v2);
+Colour randomColour(){
+    float r = rand()%256;
+    float g = rand()%256;
+    float b = rand()%256;
+    return Colour(r, g, b);
+}
+
+CanvasTriangle randomCanvasPoint(){
+    CanvasPoint v0 = CanvasPoint(rand()%WIDTH, rand()%HEIGHT);
+    CanvasPoint v1 = CanvasPoint(rand()%WIDTH, rand()%HEIGHT);
+    CanvasPoint v2 = CanvasPoint(rand()%WIDTH, rand()%HEIGHT);
+    return CanvasTriangle(v0, v1, v2);
+}
+
+void drawTriangle(DrawingWindow &window, CanvasTriangle t, Colour col) {
     drawLine(t.v0(), t.v1(),window, col);
     drawLine(t.v1(), t.v2(),window, col);
     drawLine(t.v2(), t.v0(),window, col);
 }
 
 void unfilledTriangle(DrawingWindow &window) {
-    CanvasPoint v0 = CanvasPoint(rand() % window.width, rand() % window.height);
-    CanvasPoint v1 = CanvasPoint(rand() % window.width, rand() % window.height);
-    CanvasPoint v2 = CanvasPoint(rand() % window.width, rand() % window.height);
-    CanvasTriangle t = CanvasTriangle(v0, v1, v2);
-
-    Colour col = Colour(rand() % 255, rand() % 255, rand() % 255);
-    drawLine(t.v0(), t.v1(), window, col);
-    drawLine(t.v1(), t.v2(),window, col);
-    drawLine(t.v2(), t.v0(),window, col);
+    drawTriangle(window,randomCanvasPoint(),randomColour());
 }
 
     void draw(DrawingWindow &window) {
@@ -149,7 +154,7 @@ void unfilledTriangle(DrawingWindow &window) {
     int main(int argc, char *argv[]) {
         DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
         SDL_Event event;
-
+        draw(window);
         //test code for interpolateSingleElementValue
         /*
         std::vector<float> result;
@@ -172,7 +177,7 @@ void unfilledTriangle(DrawingWindow &window) {
         while (true) {
             // We MUST poll for events - otherwise the window will freeze !
             if (window.pollForInputEvents(event)) handleEvent(event, window);
-            draw(window);
+            //draw(window);
             // Need to render the frame at the end, or nothing actually gets shown on the screen !
             window.renderFrame();
         }
