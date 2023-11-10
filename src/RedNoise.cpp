@@ -85,6 +85,10 @@ void unfilledTriangle(DrawingWindow &window) {
     drawTriangle(window,randomCanvasPoint(),randomColour());
 }
 
+void filledTriangle(DrawingWindow &window){
+  //  unfilledTriangle(window,)
+}
+
     void draw(DrawingWindow &window) {
         window.clearPixels();
 
@@ -145,6 +149,7 @@ void unfilledTriangle(DrawingWindow &window) {
             else if (event.key.keysym.sym == SDLK_UP) std::cout << "UP" << std::endl;
             else if (event.key.keysym.sym == SDLK_DOWN) std::cout << "DOWN" << std::endl;
             else if (event.key.keysym.sym == SDLK_u) unfilledTriangle(window),std::cout << "Create Random Triangle" << std::endl;
+           // else if (event.key.keysym.sym == SDLK_f) filledTriangle()
         } else if (event.type == SDL_MOUSEBUTTONDOWN) {
             window.savePPM("output.ppm");
             window.saveBMP("output.bmp");
