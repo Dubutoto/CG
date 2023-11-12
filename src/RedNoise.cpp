@@ -85,8 +85,70 @@ void unfilledTriangle(DrawingWindow &window) {
     drawTriangle(window,randomCanvasPoint(),randomColour());
 }
 
+void fillColour(bool flat, CanvasPoint left, CanvasPoint right, CanvasPoint c, DrawingWindow &window, Colour col) {
+    int numberOfValue = abs(left.y - c.y);
+
+    std::vector<float> v0, v1;
+
+    if (flat) {
+        v0 = interpolateSingleFloats(c.x, left.x, numberOfValue);
+        v1 = interpolateSingleFloats(c.x, right.x, numberOfValue);
+    } else {
+        v0 = interpolateSingleFloats(left.x, c.x, numberOfValue);
+        v1 = interpolateSingleFloats(right.x, c.x, numberOfValue);
+    }
+
+    for (float y = flat ? c.y : left.y; y < (flat ? left.y : c.y); ++y) {
+        drawLine(CanvasPoint(v0[y - static_cast<int>(flat ? c.y : left.y)], y),
+                 CanvasPoint(v1[y - static_cast<int>(flat ? c.y : left.y)], y), window, col);
+    }
+}
+
+
+void sortVertices(bool yOrX, CanvasTriangle &t) {
+    int indices[3] = {0, 1, 2};
+
+    auto compare = [&](int a, int b) {
+        return yOrX ? t[a].y < t[b].y : t[a].x < t[b].x;
+    };
+    //좌표를 인덱스 배열을 기준으로 정렬
+    std::sort(indices, indices + 3, compare);
+    //정렬된 인덱스를 사용하여 좌표를 업데이트
+    CanvasPoint temp[3];
+    for (int i = 0; i < 3; ++i) {
+        temp[i] = t[indices[i]];
+    }
+    //정렬된 좌표를 원래의 CanvasTriangle에 복사
+    for (int i = 0; i < 3; ++i) {
+        t[i] = temp[i];
+    }
+}
+
+void leftToRight(CanvasPoint &left, CanvasPoint &right, CanvasTriangle &t) {
+    sortVertices(true, t);
+
+    float xDiff = t[2].x - t[0].x;
+    float yDiff = t[2].y - t[0].y;
+    float extraPointX = t[0].x + xDiff * (t[1].y - t[0].y) / yDiff;
+
+    if (t[1].x < extraPointX) {
+        left = t[1];
+        right = CanvasPoint(extraPointX, t[1].y);
+    } else {
+        left = CanvasPoint(extraPointX, t[1].y);
+        right = t[1];
+    }
+}
+
+
 void filledTriangle(DrawingWindow &window){
-    drawTriangle(window,randomCanvasPoint(),Colour(255, 255, 255));
+    CanvasTriangle t = randomCanvasPoint();
+    CanvasPoint left, right;
+    leftToRight(left, right, t);
+    Colour col = Colour(rand() % 256, rand() % 256, rand() % 256);
+    fillColour(true, left, right, t[0], window, col);
+    fillColour(false, left, right, t[2], window, col);
+    drawTriangle(window,t,Colour(255, 255, 255));
 }
 
     void draw(DrawingWindow &window) {
@@ -149,7 +211,7 @@ void filledTriangle(DrawingWindow &window){
             else if (event.key.keysym.sym == SDLK_UP) std::cout << "UP" << std::endl;
             else if (event.key.keysym.sym == SDLK_DOWN) std::cout << "DOWN" << std::endl;
             else if (event.key.keysym.sym == SDLK_u) unfilledTriangle(window),std::cout << "Create Unfilled Triangle" << std::endl;
-            else if (event.key.keysym.sym == SDLK_f) filledTriangle(window),std::cout << "Create Unfilled Triangle" << std::endl;
+            else if (event.key.keysym.sym == SDLK_f) filledTriangle(window),std::cout << "Create Filled Triangle" << std::endl;
         } else if (event.type == SDL_MOUSEBUTTONDOWN) {
             window.savePPM("output.ppm");
             window.saveBMP("output.bmp");
