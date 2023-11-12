@@ -3,6 +3,7 @@
 #include <Colour.h>
 #include <DrawingWindow.h>
 #include <fstream>
+#include <TextureMap.h>
 #include <Utils.h>
 #include <glm/glm.hpp>
 #include <vector>
@@ -34,8 +35,8 @@ std::vector <glm::vec3> interpolateThreeElementValues(glm::vec3 from, glm::vec3 
     }
     return result;
 }
-/*
-std::vector<CanvasPoint> interpolateCanvasPoint(CanvasPoint from, CanvasPoint to, int numberOfValues){
+
+std::vector<CanvasPoint> interpolation(CanvasPoint from, CanvasPoint to, int numberOfValues){
     std::vector<CanvasPoint> result;
     float xPoint =(to.x - from.x) / (float)(numberOfValues-1);
     float yPoint =(to.y - from.y) / (float)(numberOfValues-1);
@@ -44,7 +45,7 @@ std::vector<CanvasPoint> interpolateCanvasPoint(CanvasPoint from, CanvasPoint to
     }
     return result;
 }
-*/
+
 void drawLine (CanvasPoint from, CanvasPoint to, DrawingWindow &window, Colour col) {
 
     float xDiff = round(to.x - from.x);
@@ -97,10 +98,10 @@ void fillColour(bool flat, CanvasPoint left, CanvasPoint right, CanvasPoint c, D
         v0 = interpolateSingleFloats(left.x, c.x, numberOfValue);
         v1 = interpolateSingleFloats(right.x, c.x, numberOfValue);
     }
-
+// not use static_cast, round, float (check for futher steps later)
     for (float y = flat ? c.y : left.y; y < (flat ? left.y : c.y); ++y) {
-        drawLine(CanvasPoint(v0[y - static_cast<int>(flat ? c.y : left.y)], y),
-                 CanvasPoint(v1[y - static_cast<int>(flat ? c.y : left.y)], y), window, col);
+        drawLine(CanvasPoint(v0[y - (flat ? c.y : left.y)], y),
+                 CanvasPoint(v1[y - (flat ? c.y : left.y)], y), window, col);
     }
 }
 
@@ -150,6 +151,8 @@ void filledTriangle(DrawingWindow &window){
     fillColour(false, left, right, t[2], window, col);
     drawTriangle(window,t,Colour(255, 255, 255));
 }
+
+
 
     void draw(DrawingWindow &window) {
         window.clearPixels();
