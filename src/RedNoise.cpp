@@ -152,6 +152,14 @@ void filledTriangle(DrawingWindow &window){
     drawTriangle(window,t,Colour(255, 255, 255));
 }
 
+void drawTexture(CanvasTriangle texture, CanvasTriangle c, DrawingWindow &window){
+    TextureMap textureMap = TextureMap("texture.ppm");
+    CanvasPoint canvasLeft,canvasRight;
+    leftToRight(canvasLeft,canvasRight,c);
+
+    CanvasTriangle calTriangle = CanvasTriangle(c[0],c[1],c[2]);
+    drawTriangle(window,calTriangle, Colour(255,255,255));
+}
 
 
     void draw(DrawingWindow &window) {
