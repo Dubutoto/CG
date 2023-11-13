@@ -10,9 +10,8 @@
 				{
 					"includeDirectories" : 
 					[
-						"/Library/Developer/CommandLineTools/usr/lib/clang/15.0.0/include",
-						"/Library/Developer/CommandLineTools/SDKs/MacOSX14.0.sdk/usr/include",
-						"/Library/Developer/CommandLineTools/usr/include"
+						"/usr/include",
+						"/Library/Developer/CommandLineTools/SDKs/MacOSX14.0.sdk/usr/include"
 					],
 					"linkDirectories" : [],
 					"linkFrameworkDirectories" : [],
@@ -36,17 +35,12 @@
 				{
 					"includeDirectories" : 
 					[
-						"/Library/Developer/CommandLineTools/SDKs/MacOSX14.0.sdk/usr/include/c++/v1",
-						"/Library/Developer/CommandLineTools/usr/lib/clang/15.0.0/include",
-						"/Library/Developer/CommandLineTools/SDKs/MacOSX14.0.sdk/usr/include",
-						"/Library/Developer/CommandLineTools/usr/include"
+						"/usr/include",
+						"/Library/Developer/CommandLineTools/SDKs/MacOSX14.0.sdk/usr/include"
 					],
 					"linkDirectories" : [],
 					"linkFrameworkDirectories" : [],
-					"linkLibraries" : 
-					[
-						"c++"
-					]
+					"linkLibraries" : []
 				},
 				"path" : "/Library/Developer/CommandLineTools/usr/bin/c++",
 				"version" : "15.0.0.15000040"

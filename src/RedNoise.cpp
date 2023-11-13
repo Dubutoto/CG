@@ -152,10 +152,29 @@ void filledTriangle(DrawingWindow &window){
     drawTriangle(window,t,Colour(255, 255, 255));
 }
 
-void drawTexture(CanvasTriangle texture, CanvasTriangle c, DrawingWindow &window){
+void drawTexture(){
+
+}
+
+void mapTexture(CanvasTriangle t, CanvasTriangle c, DrawingWindow &window){
     TextureMap textureMap = TextureMap("texture.ppm");
     CanvasPoint canvasLeft,canvasRight;
     leftToRight(canvasLeft,canvasRight,c);
+
+    float lengthOfTri = (c[2].x - c[0].x) != 0 ? (canvasRight.x - c[0].x) / (c[2].x - c[0].x) : 0;
+// texture left, right
+    CanvasPoint left,right;
+    leftToRight(left,right,t);
+    if (c[1].x == canvasLeft.x) {
+        left = t[1];                      // Xdiff                                           Ydiff
+        right = CanvasPoint(t[0].x + (t[2].x - t[0].x) * lengthOfTri, t[0].y + (t[2].y - t[0].y) * lengthOfTri);
+    } else {
+        right = t[1];                    // Xdiff                                            Ydiff
+        left = CanvasPoint(t[0].x + (t[2].x - t[0].x) * lengthOfTri, t[1].y + (t[2].y - t[1].y) * lengthOfTri);
+    }
+
+    drawTexture();
+    drawTexture();
 
     CanvasTriangle calTriangle = CanvasTriangle(c[0],c[1],c[2]);
     drawTriangle(window,calTriangle, Colour(255,255,255));
@@ -233,6 +252,7 @@ void drawTexture(CanvasTriangle texture, CanvasTriangle c, DrawingWindow &window
         DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
         SDL_Event event;
         draw(window);
+
         //test code for interpolateSingleElementValue
         /*
         std::vector<float> result;
