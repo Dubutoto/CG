@@ -3,6 +3,7 @@
 #include <Colour.h>
 #include <DrawingWindow.h>
 #include <fstream>
+#include <ModelTriangle.h>
 #include <TextureMap.h>
 #include <Utils.h>
 #include <glm/glm.hpp>
@@ -45,6 +46,8 @@ std::vector<CanvasPoint> interpolation(CanvasPoint from, CanvasPoint to, int num
     }
     return result;
 }
+
+//std::vector<ModelTriangle> readObjFile(const std::string& filename)
 
 void drawLine (CanvasPoint from, CanvasPoint to, DrawingWindow &window, Colour col) {
 
