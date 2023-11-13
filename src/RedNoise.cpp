@@ -152,34 +152,34 @@ void filledTriangle(DrawingWindow &window){
     drawTriangle(window,t,Colour(255, 255, 255));
 }
 
-std::vector<uint32_t> textureColour(TextureMap texturemap, CanvasPoint from, CanvasPoint to, int numberOfValues) {
+std::vector<uint32_t> textureColour(TextureMap textureMap, CanvasPoint from, CanvasPoint to, int numberOfValues) {
     std::vector<CanvasPoint> texturePoints = interpolation(from, to, numberOfValues);
     std::vector<uint32_t> colours;
 
     for (int i = 0; i < numberOfValues; ++i) {
-        colours.push_back(texturemap.pixels[round(texturePoints[i].x) + round(texturePoints[i].y) * texturemap.width]);
+        colours.push_back(textureMap.pixels[round(texturePoints[i].x) + round(texturePoints[i].y) * textureMap.width]);
     }
 
     return colours;
 }
 
 
-void drawTexture(DrawingWindow &window, TextureMap textureMap, CanvasTriangle t, CanvasTriangle c){
-    //CanvasTriangle always have 3 vertices.
-    for (int i = 0; i < 3; ++i) {
-        int startRow = round(c[i].y);
-        int endRow = round(c[(i + 1) % 3].y);
+void drawTexture(DrawingWindow &window, TextureMap textureMap, CanvasTriangle t, CanvasTriangle c) {
 
-        std::vector<CanvasPoint> canvasleft = interpolation(c[i], c[(i + 1) % 3], endRow - startRow + 1);
-        std::vector<CanvasPoint> left = interpolation(t[i], t[(i + 1) % 3], endRow - startRow + 1);
+    int numberOfRow = abs(c[0].y - c[1].y)+1; // +1 to draw it without any blackline in the triangle
 
-        for (int j = startRow; j <= endRow; ++j) {
-            int startCol = round(canvasleft[j - startRow].x);
-            int endCol = round(c[(i + 2) % 3].x);
-            std::vector<uint32_t> colours = textureColour(textureMap, left[j], left[0], endRow);
-            for (int k = startCol; k <= endCol; ++k) {
-                window.setPixelColour(k, j, colours[k - startCol]);
-            }
+    std::vector<CanvasPoint> canvasLeft = interpolation(c[0], c[1], numberOfRow);
+    std::vector<CanvasPoint> canvasRight = interpolation(c[0], c[2], numberOfRow);
+
+    std::vector<CanvasPoint> left = interpolation(t[0], t[1], numberOfRow);
+    std::vector<CanvasPoint> right = interpolation(t[0], t[2], numberOfRow);
+
+    for (int i = 0; i < numberOfRow; i++) {
+        int numberOfCol = round(canvasRight[i].x - canvasLeft[i].x);
+        std::vector<uint32_t> colour = textureColour(textureMap, left[i], right[i], numberOfCol);
+        int start = round(canvasLeft[i].x);
+        for (int j = 0; j < numberOfCol; j++) {
+            window.setPixelColour(start++, (canvasLeft[i].y), colour[j]);
         }
     }
 }
@@ -216,8 +216,8 @@ void mapTexture(CanvasTriangle t, CanvasTriangle c, DrawingWindow &window){
 }
 
 
-    void draw(DrawingWindow &window) {
-        window.clearPixels();
+void draw(DrawingWindow &window) {
+    window.clearPixels();
 
     //std::vector<float> greyScales = interpolateSingleFloats(255, 0, WIDTH);
     //for (size_t y = 0; y < window.height; y++) {
@@ -240,17 +240,20 @@ void mapTexture(CanvasTriangle t, CanvasTriangle c, DrawingWindow &window){
 //drawLine(CanvasPoint(window.width - 1,1),CanvasPoint(window.width /2, window.height/2), window, col);
 //drawLine(CanvasPoint(window.width/2, 0), CanvasPoint(window.width/2, window.height-1), window, col);
 //drawLine(CanvasPoint(window.width/3, window.height/2), CanvasPoint(window.width * 2 / 3, window.height / 2), window, col);
-        CanvasPoint t0 = CanvasPoint(195, 5);
-        CanvasPoint t1 = CanvasPoint(395, 380);
-        CanvasPoint t2 = CanvasPoint(65, 330);
-        CanvasTriangle t = CanvasTriangle(t0, t1, t2);
 
-        CanvasPoint c0 = CanvasPoint(160, 10);
-        CanvasPoint c1 = CanvasPoint(300, 230);
-        CanvasPoint c2 = CanvasPoint(10, 150);
-        CanvasTriangle c = CanvasTriangle(c0, c1, c2);
+// Code for textured Triangle.
+    //Canvas Point
+    CanvasPoint c0 = CanvasPoint(160, 10);
+    CanvasPoint c1 = CanvasPoint(300, 230);
+    CanvasPoint c2 = CanvasPoint(10, 150);
+    CanvasTriangle c = CanvasTriangle(c0, c1, c2);
+    //Texture Point
+    CanvasPoint t0 = CanvasPoint(195, 5);
+    CanvasPoint t1 = CanvasPoint(395, 380);
+    CanvasPoint t2 = CanvasPoint(65, 330);
+    CanvasTriangle t = CanvasTriangle(t0, t1, t2);
 
-        mapTexture(t, c, window);
+    mapTexture(t, c, window);
     }
 
     void drawColour(DrawingWindow &window) {
