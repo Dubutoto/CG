@@ -47,7 +47,30 @@ std::vector<CanvasPoint> interpolation(CanvasPoint from, CanvasPoint to, int num
     return result;
 }
 
-//std::vector<ModelTriangle> readObjFile(const std::string& filename)
+std::vector<ModelTriangle> readObjFile(const std::string& filename, float scalingFactor) {
+    std::ifstream readFile(filename);
+    std::vector<ModelTriangle> t;
+    std::vector<glm::vec3> objVector;
+    std::string line;
+
+    while (std::getline(readFile, line)) {
+        auto tokens = split(line, ' ');
+
+        if (tokens.empty())
+            continue; // ignore empty line
+
+        if (tokens[0] == "v") {
+            objVector.emplace_back(std::stof(tokens[1]) * scalingFactor,
+                                   std::stof(tokens[2]) * scalingFactor,
+                                   std::stof(tokens[3]) * scalingFactor);
+        }else if(tokens[0] == "f"){
+            t.emplace_back(objVector[std::stoi(tokens[1]) - 1],
+                                   objVector[std::stoi(tokens[2]) - 1],
+                                   objVector[std::stoi(tokens[3]) - 1],Colour(255,255,255));
+        }
+    }
+    return t;
+}
 
 void drawLine (CanvasPoint from, CanvasPoint to, DrawingWindow &window, Colour col) {
 
@@ -304,6 +327,7 @@ void draw(DrawingWindow &window) {
         SDL_Event event;
         draw(window);
 
+        std::vector<ModelTriangle> test = readObjFile("cornell-box.obj", 0.35);
         //test code for interpolateSingleElementValue
         /*
         std::vector<float> result;
