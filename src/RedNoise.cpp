@@ -4,6 +4,7 @@
 #include <DrawingWindow.h>
 #include <fstream>
 #include <ModelTriangle.h>
+#include <map>
 #include <TextureMap.h>
 #include <Utils.h>
 #include <glm/glm.hpp>
@@ -46,19 +47,37 @@ std::vector<CanvasPoint> interpolation(CanvasPoint from, CanvasPoint to, int num
     }
     return result;
 }
+std::map<std::string, Colour> readMtlFile(const std::string& filename){
+    std::ifstream readFile(filename);
+    std::map<std::string, Colour> palette;
+    std::string line, key;
 
+    while (std::getline(readFile, line)) {
+        auto tokens = split(line, ' ');
+
+        if (tokens[0] == "newmtl") {
+            key = tokens[1];
+        } else if (tokens[0] == "Kd") {
+            float r = std::stof(tokens[1]) * 255;
+            float g = std::stof(tokens[2]) * 255;
+            float b = std::stof(tokens[3]) * 255;
+
+            palette[key] = Colour(r, g, b);
+        }
+    }
+
+    return palette;
+}
 std::vector<ModelTriangle> readObjFile(const std::string& filename, float scalingFactor) {
     std::ifstream readFile(filename);
     std::vector<ModelTriangle> t;
     std::vector<glm::vec3> objVector;
     std::string line;
+    Colour col;
+    std::map<std::string, Colour> palette;
 
     while (std::getline(readFile, line)) {
         auto tokens = split(line, ' ');
-
-        if (tokens.empty())
-            continue; // ignore empty line
-
         if (tokens[0] == "v") {
             objVector.emplace_back(std::stof(tokens[1]) * scalingFactor,
                                    std::stof(tokens[2]) * scalingFactor,
@@ -66,7 +85,14 @@ std::vector<ModelTriangle> readObjFile(const std::string& filename, float scalin
         }else if(tokens[0] == "f"){
             t.emplace_back(objVector[std::stoi(tokens[1]) - 1],
                                    objVector[std::stoi(tokens[2]) - 1],
-                                   objVector[std::stoi(tokens[3]) - 1],Colour(255,255,255));
+                                   objVector[std::stoi(tokens[3]) - 1],col);
+        }else if (tokens[0] == "usemtl") {
+            std::cout << line << std::endl;
+            col = palette[tokens[1]];
+        }
+        else if (tokens[0] == "mtllib") {
+            std::cout << line << std::endl;
+            palette = readMtlFile(tokens[1]);
         }
     }
     return t;
