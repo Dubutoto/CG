@@ -12,7 +12,7 @@
 
 
 #define WIDTH 320
-#define HEIGHT 240
+#define HEIGHT 320
 
 
 
@@ -47,6 +47,7 @@ std::vector<CanvasPoint> interpolation(CanvasPoint from, CanvasPoint to, int num
     }
     return result;
 }
+
 std::map<std::string, Colour> readMtlFile(const std::string& filename){
     std::ifstream readFile(filename);
     std::map<std::string, Colour> palette;
@@ -65,9 +66,9 @@ std::map<std::string, Colour> readMtlFile(const std::string& filename){
             palette[key] = Colour(r, g, b);
         }
     }
-
     return palette;
 }
+
 std::vector<ModelTriangle> readObjFile(const std::string& filename, float scalingFactor) {
     std::ifstream readFile(filename);
     std::vector<ModelTriangle> t;
@@ -249,7 +250,32 @@ void calculateTextureCoordinates(CanvasTriangle &t, CanvasTriangle &c, CanvasPoi
         right = t[1];                    // Xdiff                                            Ydiff
         left = CanvasPoint(t[0].x + (t[2].x - t[0].x) * lengthOfTri, t[1].y + (t[2].y - t[1].y) * lengthOfTri);
     }
+}
+//Constants
+glm::vec3 cameraPosition(0.0,0.0,4.0);
+float focalLength = 2.0 ;
+glm::mat3 camOrientation = glm::mat3(1, 0, 0,
+                                        0, 1, 0,
+                                        0, 0, 1);
 
+CanvasPoint getCanvasIntersectionPoint(glm::vec3 vertexPosition, float range) {
+    glm::vec3 distanceVec = (cameraPosition - vertexPosition) * camOrientation;
+    float a = focalLength * (distanceVec.x / -distanceVec.z);
+    float b = focalLength * (distanceVec.y / distanceVec.z);
+    CanvasPoint result = CanvasPoint(a * range + WIDTH/2 , b * range + HEIGHT/2);
+
+    return result;
+}
+
+void wireFrame(DrawingWindow& window, std::vector<ModelTriangle> modelTriangles) {
+    window.clearPixels();
+    for(ModelTriangle modelTriangle : modelTriangles) {
+        auto v0 = getCanvasIntersectionPoint(modelTriangle.vertices[0], 240);
+        auto v1 = getCanvasIntersectionPoint(modelTriangle.vertices[1], 240);
+        auto v2 = getCanvasIntersectionPoint(modelTriangle.vertices[2], 240);
+
+        drawTriangle(window, CanvasTriangle(v0, v1, v2), Colour(255,255,255));
+    }
 }
 void mapTexture(CanvasTriangle t, CanvasTriangle c, DrawingWindow &window){
     std::string filename = "texture.ppm";
@@ -270,6 +296,10 @@ void mapTexture(CanvasTriangle t, CanvasTriangle c, DrawingWindow &window){
 
 void draw(DrawingWindow &window) {
     window.clearPixels();
+
+
+    std::vector<ModelTriangle> test = readObjFile("cornell-box.obj", 0.35);
+    wireFrame(window, test);
 
     //std::vector<float> greyScales = interpolateSingleFloats(255, 0, WIDTH);
     //for (size_t y = 0; y < window.height; y++) {
@@ -295,17 +325,16 @@ void draw(DrawingWindow &window) {
 
 // Code for textured Triangle.
     //Canvas Point
-    CanvasPoint c0 = CanvasPoint(160, 10);
-    CanvasPoint c1 = CanvasPoint(300, 230);
-    CanvasPoint c2 = CanvasPoint(10, 150);
-    CanvasTriangle c = CanvasTriangle(c0, c1, c2);
+   // CanvasPoint c0 = CanvasPoint(160, 10);
+   // CanvasPoint c1 = CanvasPoint(300, 230);
+   // CanvasPoint c2 = CanvasPoint(10, 150);
+   // CanvasTriangle c = CanvasTriangle(c0, c1, c2);
     //Texture Point
-    CanvasPoint t0 = CanvasPoint(195, 5);
-    CanvasPoint t1 = CanvasPoint(395, 380);
-    CanvasPoint t2 = CanvasPoint(65, 330);
-    CanvasTriangle t = CanvasTriangle(t0, t1, t2);
-
-    mapTexture(t, c, window);
+   // CanvasPoint t0 = CanvasPoint(195, 5);
+   // CanvasPoint t1 = CanvasPoint(395, 380);
+   // CanvasPoint t2 = CanvasPoint(65, 330);
+   // CanvasTriangle t = CanvasTriangle(t0, t1, t2);
+   // mapTexture(t, c, window);
     }
 
     void drawColour(DrawingWindow &window) {
@@ -351,9 +380,9 @@ void draw(DrawingWindow &window) {
     int main(int argc, char *argv[]) {
         DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
         SDL_Event event;
-        draw(window);
+       draw(window);
 
-        std::vector<ModelTriangle> test = readObjFile("cornell-box.obj", 0.35);
+
         //test code for interpolateSingleElementValue
         /*
         std::vector<float> result;
@@ -376,7 +405,7 @@ void draw(DrawingWindow &window) {
         while (true) {
             // We MUST poll for events - otherwise the window will freeze !
             if (window.pollForInputEvents(event)) handleEvent(event, window);
-            //draw(window);
+          //  draw(window);
             // Need to render the frame at the end, or nothing actually gets shown on the screen !
             window.renderFrame();
         }
