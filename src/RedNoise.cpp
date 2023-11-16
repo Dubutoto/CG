@@ -14,6 +14,11 @@
 #define WIDTH 320
 #define HEIGHT 320
 
+glm::vec3 cameraPosition(0.0,0.0,4.0);
+float focalLength = 2.0 ;
+glm::mat3 camOrientation = glm::mat3(1, 0, 0,
+                                     0, 1, 0,
+                                     0, 0, 1);
 
 
 std::vector <float> interpolateSingleFloats(float from, float to, int numberOfValues){
@@ -140,7 +145,7 @@ void unfilledTriangle(DrawingWindow &window) {
 }
 
 void fillColour(bool flat, CanvasPoint left, CanvasPoint right, CanvasPoint c, DrawingWindow &window, Colour col) {
-    int numberOfValue = abs(left.y - c.y);
+    int numberOfValue = abs(left.y - c.y) + 1;
 
     std::vector<float> v0, v1;
 
@@ -195,15 +200,14 @@ void leftToRight(CanvasPoint &left, CanvasPoint &right, CanvasTriangle &t) {
 }
 
 
-void filledTriangle(DrawingWindow &window){
-    CanvasTriangle t = randomCanvasPoint();
+void filledTriangle(DrawingWindow &window, CanvasTriangle t, Colour col){
     CanvasPoint left, right;
     leftToRight(left, right, t);
-    Colour col = Colour(rand() % 256, rand() % 256, rand() % 256);
     fillColour(true, left, right, t[0], window, col);
     fillColour(false, left, right, t[2], window, col);
-    drawTriangle(window,t,Colour(255, 255, 255));
+    drawTriangle(window,t,col);
 }
+
 
 std::vector<uint32_t> textureColour(TextureMap textureMap, CanvasPoint from, CanvasPoint to, int numberOfValues) {
     std::vector<CanvasPoint> texturePoints = interpolation(from, to, numberOfValues);
@@ -252,11 +256,7 @@ void calculateTextureCoordinates(CanvasTriangle &t, CanvasTriangle &c, CanvasPoi
     }
 }
 //Constants
-glm::vec3 cameraPosition(0.0,0.0,4.0);
-float focalLength = 2.0 ;
-glm::mat3 camOrientation = glm::mat3(1, 0, 0,
-                                        0, 1, 0,
-                                        0, 0, 1);
+
 
 CanvasPoint getCanvasIntersectionPoint(glm::vec3 vertexPosition, float range) {
     glm::vec3 distanceVec = (cameraPosition - vertexPosition) * camOrientation;
@@ -267,16 +267,29 @@ CanvasPoint getCanvasIntersectionPoint(glm::vec3 vertexPosition, float range) {
     return result;
 }
 
-void wireFrame(DrawingWindow& window, std::vector<ModelTriangle> modelTriangles) {
+void wireframeRender(DrawingWindow& window, std::vector<ModelTriangle> modelT) {
     window.clearPixels();
-    for(ModelTriangle modelTriangle : modelTriangles) {
+    for(ModelTriangle modelTriangle : modelT) {
+        auto v0 = getCanvasIntersectionPoint(modelTriangle.vertices[0], 180);
+        auto v1 = getCanvasIntersectionPoint(modelTriangle.vertices[1], 180);
+        auto v2 = getCanvasIntersectionPoint(modelTriangle.vertices[2], 180);
+        auto t = CanvasTriangle(v0, v1, v2);
+        drawTriangle(window, t, modelTriangle.colour);
+    }
+}
+
+void rasteriseRender(DrawingWindow& window, std::vector<ModelTriangle> modelT) {
+    window.clearPixels();
+    for(ModelTriangle modelTriangle : modelT) {
         auto v0 = getCanvasIntersectionPoint(modelTriangle.vertices[0], 240);
         auto v1 = getCanvasIntersectionPoint(modelTriangle.vertices[1], 240);
         auto v2 = getCanvasIntersectionPoint(modelTriangle.vertices[2], 240);
 
-        drawTriangle(window, CanvasTriangle(v0, v1, v2), Colour(255,255,255));
+        auto t = CanvasTriangle(v0, v1, v2);
+        filledTriangle(window, t, modelTriangle.colour);
     }
 }
+
 void mapTexture(CanvasTriangle t, CanvasTriangle c, DrawingWindow &window){
     std::string filename = "texture.ppm";
     TextureMap textureMap = TextureMap(filename);
@@ -297,10 +310,17 @@ void mapTexture(CanvasTriangle t, CanvasTriangle c, DrawingWindow &window){
 void draw(DrawingWindow &window) {
     window.clearPixels();
 
+//wireFrame
+std::vector<ModelTriangle> test = readObjFile("cornell-box.obj", 0.35);
 
-    std::vector<ModelTriangle> test = readObjFile("cornell-box.obj", 0.35);
-    wireFrame(window, test);
+for(size_t i =0; i < HEIGHT; i++) {
+    //wireframeRender(window, test);
+    //rasteriseRender(window,test);
+    }
 
+//Rasterised Render
+
+   // rasteriseRender(window,test);
     //std::vector<float> greyScales = interpolateSingleFloats(255, 0, WIDTH);
     //for (size_t y = 0; y < window.height; y++) {
         //for (size_t x = 0; x < window.width; x++) {
@@ -370,7 +390,7 @@ void draw(DrawingWindow &window) {
             else if (event.key.keysym.sym == SDLK_UP) std::cout << "UP" << std::endl;
             else if (event.key.keysym.sym == SDLK_DOWN) std::cout << "DOWN" << std::endl;
             else if (event.key.keysym.sym == SDLK_u) unfilledTriangle(window),std::cout << "Create Unfilled Triangle" << std::endl;
-            else if (event.key.keysym.sym == SDLK_f) filledTriangle(window),std::cout << "Create Filled Triangle" << std::endl;
+            else if (event.key.keysym.sym == SDLK_f) filledTriangle(window,randomCanvasPoint(),randomColour()),std::cout << "Create Filled Triangle" << std::endl;
         } else if (event.type == SDL_MOUSEBUTTONDOWN) {
             window.savePPM("output.ppm");
             window.saveBMP("output.bmp");
@@ -380,7 +400,11 @@ void draw(DrawingWindow &window) {
     int main(int argc, char *argv[]) {
         DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
         SDL_Event event;
-       draw(window);
+
+       //draw(window);
+        std::vector<ModelTriangle> test = readObjFile("cornell-box.obj", 0.35);
+        //wireframeRender(window, test);
+        rasteriseRender(window,test);
 
 
         //test code for interpolateSingleElementValue
@@ -405,7 +429,7 @@ void draw(DrawingWindow &window) {
         while (true) {
             // We MUST poll for events - otherwise the window will freeze !
             if (window.pollForInputEvents(event)) handleEvent(event, window);
-          //  draw(window);
+            //draw(window);
             // Need to render the frame at the end, or nothing actually gets shown on the screen !
             window.renderFrame();
         }
