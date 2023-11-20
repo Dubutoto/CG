@@ -19,7 +19,7 @@ float focalLength = 2.0 ;
 glm::mat3 camOrientation = glm::mat3(1, 0, 0,
                                      0, 1, 0,
                                      0, 0, 1);
-std::vector<std::vector<float>> depth(WIDTH, std::vector<float>(HEIGHT,0));
+std::vector<std::vector<float>> depth(WIDTH, std::vector<float>(HEIGHT, 0));
 
 
 std::vector <float> interpolateSingleFloats(float from, float to, int numberOfValues){
@@ -111,21 +111,22 @@ void drawLine (CanvasPoint from, CanvasPoint to, DrawingWindow &window, Colour c
     float yDiff = round(to.y - from.y);
     float zDiff = to.depth - from.depth;
 
-    float numberOfSteps = std::max(abs(xDiff) , abs(yDiff));
+    float numberOfSteps = std::max(abs(xDiff), abs(yDiff));
+    numberOfSteps = std::max(numberOfSteps, zDiff);
     float xStepSize = xDiff / numberOfSteps;
     float yStepSize = yDiff / numberOfSteps;
     float zStepSize = zDiff / numberOfSteps;
 
     uint32_t colour = (255 << 24) + (col.red << 16) + (col.green << 8) + col.blue;
     for (float i = 0.0; i <= numberOfSteps; i++) {
-        float x = round(from.x + (xStepSize * i));
-        float y = round(from.y + (yStepSize * i));
+        float x = from.x + (xStepSize * i);
+        float y = from.y + (yStepSize * i);
         float z = from.depth + (zStepSize * i);
 
-        if(x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT){
-            if(depth[x][y] <= 1 / z){
+        if(round(x) >= 0 && round(x) < WIDTH && round(y) >= 0 && round(y) < HEIGHT){
+            if(depth[round(x)][round(y)] <= 1 / z){
                 window.setPixelColour(round(x),round(y),colour);
-                depth[x][y] = 1 / z ;
+                depth[round(x)][round(y)] = 1 / z ;
             }
         }
 
@@ -160,24 +161,35 @@ void unfilledTriangle(DrawingWindow &window, std::vector<std::vector<float>>& de
     drawTriangle(window,randomCanvasPoint(),randomColour(), depth);
 }
 
-void fillColour(bool flat, CanvasPoint left, CanvasPoint right, CanvasPoint c, DrawingWindow &window, Colour col) {
+void fillColour(bool flat, CanvasPoint left, CanvasPoint right, CanvasPoint c, DrawingWindow &window, Colour col, std::vector<std::vector<float>> &depth) {
     int numberOfValue = abs(left.y - c.y) + 1;
 
-    std::vector<float> v0, v1;
+    std::vector<float> v0, v1, v0_depth, v1_depth;
 
     if (flat) {
         v0 = interpolateSingleFloats(c.x, left.x, numberOfValue);
         v1 = interpolateSingleFloats(c.x, right.x, numberOfValue);
+        v0_depth = interpolateSingleFloats(c.depth, left.depth, numberOfValue);
+        v1_depth = interpolateSingleFloats(c.depth, right.depth, numberOfValue);
+        int i = 0;
+        for(float y = c.y; y < left.y; y++) {
+            drawLine(CanvasPoint(v0[i], y, v0_depth[i]), CanvasPoint(v1[i], y, v1_depth[i]), window, col, depth);
+            i++;
+        }
     } else {
         v0 = interpolateSingleFloats(left.x, c.x, numberOfValue);
         v1 = interpolateSingleFloats(right.x, c.x, numberOfValue);
+        v0_depth = interpolateSingleFloats(left.depth, c.depth, numberOfValue);
+        v1_depth = interpolateSingleFloats(right.depth, c.depth, numberOfValue);
+        int i = 0;
+        for(float y = left.y; y < c.y; y++) {
+            drawLine(CanvasPoint(v0[i], y, v0_depth[i]), CanvasPoint(v1[i], y, v1_depth[i]),window, col, depth);
+            i++;
+        }
     }
 // not use static_cast, round, float (check for futher steps later)
-    for (float y = flat ? c.y : left.y; y < (flat ? left.y : c.y); ++y) {
-        drawLine(CanvasPoint(v0[y - (flat ? c.y : left.y)], y),
-                 CanvasPoint(v1[y - (flat ? c.y : left.y)], y), window, col,depth);
-    }
 }
+
 
 
 void sortVertices(bool yOrX, CanvasTriangle &t) {
@@ -204,24 +216,27 @@ void leftToRight(CanvasPoint &left, CanvasPoint &right, CanvasTriangle &t) {
 
     float xDiff = t[2].x - t[0].x;
     float yDiff = t[2].y - t[0].y;
-    float extraPointX = t[0].x + xDiff * (t[1].y - t[0].y) / yDiff;
+    float zDiff = t[2].depth - t[0].depth;
 
-    if (t[1].x < extraPointX) {
+    float proportion = (t[1].y-t[0].y) / yDiff;
+    float var1 = (xDiff * proportion) + t[0].x;
+    float var2 = (zDiff * proportion) + t[0].depth;
+
+    if (t[1].x < var1) {
         left = t[1];
-        right = CanvasPoint(extraPointX, t[1].y);
+        right = CanvasPoint(var1, t[1].y, var2);
     } else {
-        left = CanvasPoint(extraPointX, t[1].y);
+        left = CanvasPoint(var1, t[1].y, var2);
         right = t[1];
     }
 }
 
 
-void filledTriangle(DrawingWindow &window, CanvasTriangle t, Colour col, std::vector<std::vector<float>>&depth){
+void filledTriangle(DrawingWindow &window, CanvasTriangle t, Colour col, std::vector<std::vector<float>> &depth){
     CanvasPoint left, right;
     leftToRight(left, right, t);
-    fillColour(true, left, right, t[0], window, col);
-    fillColour(false, left, right, t[2], window, col);
-    drawTriangle(window,t,col, depth);
+    fillColour(true, left, right, t[0], window, col,depth);
+    fillColour(false, left, right, t[2], window, col,depth);
 }
 
 
@@ -279,7 +294,7 @@ CanvasPoint getCanvasIntersectionPoint(glm::vec3 vertexPosition, float range) {
     float a = focalLength * (distanceVec.x / -distanceVec.z);
     float b = focalLength * (distanceVec.y / distanceVec.z);
     CanvasPoint result = CanvasPoint(a * range + WIDTH/2 , b * range + HEIGHT/2);
-
+    result.depth = distanceVec.z;
     return result;
 }
 
@@ -294,9 +309,9 @@ void wireframeRender(DrawingWindow& window, std::vector<ModelTriangle> modelT) {
     }
 }
 
-void rasteriseRender(DrawingWindow& window, std::vector<ModelTriangle> modelT) {
+void rasteriseRender(DrawingWindow& window, std::vector<ModelTriangle> modelT, std::vector<std::vector<float>>& depth) {
 
-   std::vector<std::vector<float>> depth(WIDTH, std::vector<float>(HEIGHT,0));
+
     for(ModelTriangle modelTriangle : modelT) {
         CanvasPoint v0 = getCanvasIntersectionPoint(modelTriangle.vertices[0], 180);
         CanvasPoint v1 = getCanvasIntersectionPoint(modelTriangle.vertices[1], 180);
@@ -331,8 +346,8 @@ void draw(DrawingWindow &window) {
     std::vector<ModelTriangle> test = readObjFile("cornell-box.obj", 0.35);
 
     for(size_t i =0; i < HEIGHT; i++) {
-       // wireframeRender(window, test);
-        rasteriseRender(window,test);
+      // wireframeRender(window, test);
+        rasteriseRender(window,test,depth);
     }
 
 //Rasterised Render
