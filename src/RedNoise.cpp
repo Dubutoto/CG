@@ -13,12 +13,11 @@
 
 #define WIDTH 320
 #define HEIGHT 240
+#define PI 3.1415926
 
-glm::vec3 cameraPosition(0.0,0.0,4.0);
+glm::vec3 cameraPosition = glm::vec3(0.0,0.0,4.0);
 float focalLength = 2.0 ;
-glm::mat3 camOrientation = glm::mat3(1, 0, 0,
-                                     0, 1, 0,
-                                     0, 0, 1);
+glm::mat3 camOrientation = glm::mat3(1.0);
 std::vector<std::vector<float>> depth(WIDTH, std::vector<float>(HEIGHT, 0));
 
 
@@ -338,6 +337,46 @@ void mapTexture(CanvasTriangle t, CanvasTriangle c, DrawingWindow &window){
     drawTriangle(window,calTriangle, Colour(255,255,255),depth);
 }
 
+void translateCamera(int where, bool positive) {
+    // x
+    if (where == 0) {
+        if (positive) {
+            cameraPosition += glm::vec3(0.2, 0, 0);
+        } else {
+            cameraPosition -= glm::vec3(0.2, 0, 0);
+        }
+        //y
+    } else if (where == 1) {
+        if (positive) {
+            cameraPosition += glm::vec3(0, 0.2, 0);
+        } else {
+            cameraPosition -= glm::vec3(0, 0.2, 0);
+        }
+        //z
+    } else {
+        if (positive) {
+            cameraPosition += glm::vec3(0, 0, 0.2);
+        } else {
+            cameraPosition -= glm::vec3(0, 0, 0.2);
+        }
+    }
+}
+
+void rotateCamera(bool xAxis, float value) {
+    glm::mat3 mat;
+    if (xAxis) {
+        mat = glm::mat3(
+                1, 0, 0,
+                0, cos(value), sin(value),
+                0, -sin(value), cos(value));
+    } else {
+        mat = glm::mat3(
+                cos(value), 0, -sin(value),
+                0, 1, 0,
+                sin(value), 0, cos(value));
+    }
+    cameraPosition = cameraPosition * mat;
+}
 
 void draw(DrawingWindow &window) {
     window.clearPixels();
@@ -346,7 +385,7 @@ void draw(DrawingWindow &window) {
     std::vector<ModelTriangle> test = readObjFile("cornell-box.obj", 0.35);
 
     for(size_t i =0; i < HEIGHT; i++) {
-      // wireframeRender(window, test);
+     // wireframeRender(window, test);
         rasteriseRender(window,test,depth);
     }
 
@@ -423,6 +462,16 @@ void handleEvent(SDL_Event event, DrawingWindow &window, std::vector<std::vector
         else if (event.key.keysym.sym == SDLK_DOWN) std::cout << "DOWN" << std::endl;
         else if (event.key.keysym.sym == SDLK_u) unfilledTriangle(window,depth),std::cout << "Create Unfilled Triangle" << std::endl;
         else if (event.key.keysym.sym == SDLK_f) filledTriangle(window,randomCanvasPoint(),randomColour(),depth),std::cout << "Create Filled Triangle" << std::endl;
+        else if (event.key.keysym.sym == SDLK_w) translateCamera(1, true);
+        else if (event.key.keysym.sym == SDLK_a) translateCamera(0, false);
+        else if (event.key.keysym.sym == SDLK_s) translateCamera(1, false);
+        else if (event.key.keysym.sym == SDLK_d) translateCamera(0, true);
+        else if (event.key.keysym.sym == SDLK_q) translateCamera(2, true);
+        else if (event.key.keysym.sym == SDLK_e) translateCamera(2, false);
+        else if (event.key.keysym.sym == SDLK_z) rotateCamera(false, -PI / 16);
+        else if (event.key.keysym.sym == SDLK_x) rotateCamera(false, PI / 16);
+        else if (event.key.keysym.sym == SDLK_c) rotateCamera(true, -PI / 16);
+        else if (event.key.keysym.sym == SDLK_v) rotateCamera(true, PI / 16);
     } else if (event.type == SDL_MOUSEBUTTONDOWN) {
         window.savePPM("output.ppm");
         window.saveBMP("output.bmp");
@@ -433,12 +482,10 @@ int main(int argc, char *argv[]) {
     DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
     SDL_Event event;
 
-    draw(window);
+    //draw(window);
+    handleEvent(event, window, depth);
 
-    for(size_t i = 0; i < HEIGHT; i++){
 
-        depth[i] = std::vector<float> (WIDTH);
-    }
 
 
 
@@ -464,7 +511,7 @@ int main(int argc, char *argv[]) {
     while (true) {
         // We MUST poll for events - otherwise the window will freeze !
         if (window.pollForInputEvents(event)) handleEvent(event, window, depth);
-        //draw(window);
+        draw(window);
         // Need to render the frame at the end, or nothing actually gets shown on the screen !
         window.renderFrame();
     }
