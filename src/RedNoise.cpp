@@ -310,7 +310,7 @@ void wireframeRender(DrawingWindow& window, std::vector<ModelTriangle> modelT) {
 
 void rasteriseRender(DrawingWindow& window, std::vector<ModelTriangle> modelT, std::vector<std::vector<float>>& depth) {
 
-
+    window.clearPixels();
     for(ModelTriangle modelTriangle : modelT) {
         CanvasPoint v0 = getCanvasIntersectionPoint(modelTriangle.vertices[0], 180);
         CanvasPoint v1 = getCanvasIntersectionPoint(modelTriangle.vertices[1], 180);
@@ -382,12 +382,12 @@ void draw(DrawingWindow &window) {
     window.clearPixels();
 
 //wireFrame
-    std::vector<ModelTriangle> test = readObjFile("cornell-box.obj", 0.35);
 
-    for(size_t i =0; i < HEIGHT; i++) {
+
+
      // wireframeRender(window, test);
-        rasteriseRender(window,test,depth);
-    }
+      //  rasteriseRender(window,test,depth);
+
 
 //Rasterised Render
 
@@ -481,9 +481,9 @@ void handleEvent(SDL_Event event, DrawingWindow &window, std::vector<std::vector
 int main(int argc, char *argv[]) {
     DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
     SDL_Event event;
-
+    std::vector<ModelTriangle> test = readObjFile("cornell-box.obj", 0.35);
     //draw(window);
-    handleEvent(event, window, depth);
+
 
 
 
@@ -511,7 +511,9 @@ int main(int argc, char *argv[]) {
     while (true) {
         // We MUST poll for events - otherwise the window will freeze !
         if (window.pollForInputEvents(event)) handleEvent(event, window, depth);
-        draw(window);
+        window.clearPixels();
+       // draw(window);
+        rasteriseRender(window,test,depth);
         // Need to render the frame at the end, or nothing actually gets shown on the screen !
         window.renderFrame();
     }
