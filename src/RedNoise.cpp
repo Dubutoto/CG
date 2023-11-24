@@ -9,10 +9,11 @@
 #include <Utils.h>
 #include <glm/glm.hpp>
 #include <vector>
+#include <thread>
 
 
 #define WIDTH 320
-#define HEIGHT 240
+#define HEIGHT 320
 #define PI 3.1415926
 
 glm::vec3 cameraPosition = glm::vec3(0.0,0.0,4.0);
@@ -103,6 +104,21 @@ std::vector<ModelTriangle> readObjFile(const std::string& filename, float scalin
     }
     return t;
 }
+void drawLine (CanvasPoint from, CanvasPoint to, DrawingWindow &window, Colour col) {
+
+    float xDiff = round(to.x - from.x);
+    float yDiff = round(to.y - from.y);
+    float numberOfSteps = std::max(abs(xDiff) , abs(yDiff));
+    float xStepSize = xDiff / numberOfSteps;
+    float yStepSize = yDiff / numberOfSteps;
+
+    uint32_t colour = (255 << 24) + (col.red << 16) + (col.green << 8) + col.blue;
+    for (float i = 0.0; i <= numberOfSteps; i++) {
+        float x = round(from.x + (xStepSize * i));
+        float y = round(from.y + (yStepSize * i));
+        window.setPixelColour(round(x), round(y), colour);
+    }
+}
 
 void drawLine (CanvasPoint from, CanvasPoint to, DrawingWindow &window, Colour col, std::vector<std::vector<float>> &depth) {
 
@@ -150,6 +166,12 @@ CanvasTriangle randomCanvasPoint(){
     return CanvasTriangle(v0, v1, v2);
 }
 
+void drawTriangle(DrawingWindow &window, CanvasTriangle t, Colour col) {
+    drawLine(t.v0(), t.v1(),window, col);
+    drawLine(t.v1(), t.v2(),window, col);
+    drawLine(t.v2(), t.v0(),window, col);
+}
+
 void drawTriangle(DrawingWindow &window, CanvasTriangle t, Colour col, std::vector<std::vector<float>>& depth) {
     drawLine(t.v0(), t.v1(),window, col, depth);
     drawLine(t.v1(), t.v2(),window, col,depth);
@@ -157,7 +179,26 @@ void drawTriangle(DrawingWindow &window, CanvasTriangle t, Colour col, std::vect
 }
 
 void unfilledTriangle(DrawingWindow &window, std::vector<std::vector<float>>& depth) {
-    drawTriangle(window,randomCanvasPoint(),randomColour(), depth);
+    drawTriangle(window,randomCanvasPoint(),randomColour());
+}
+
+void fillColour(bool flat, CanvasPoint left, CanvasPoint right, CanvasPoint c, DrawingWindow &window, Colour col) {
+    int numberOfValue = abs(left.y - c.y);
+
+    std::vector<float> v0, v1;
+
+    if (flat) {
+        v0 = interpolateSingleFloats(c.x, left.x, numberOfValue);
+        v1 = interpolateSingleFloats(c.x, right.x, numberOfValue);
+    } else {
+        v0 = interpolateSingleFloats(left.x, c.x, numberOfValue);
+        v1 = interpolateSingleFloats(right.x, c.x, numberOfValue);
+    }
+
+    for (float y = flat ? c.y : left.y; y < (flat ? left.y : c.y); ++y) {
+        drawLine(CanvasPoint(v0[y - static_cast<int>(flat ? c.y : left.y)], y),
+                 CanvasPoint(v1[y - static_cast<int>(flat ? c.y : left.y)], y), window, col);
+    }
 }
 
 void fillColour(bool flat, CanvasPoint left, CanvasPoint right, CanvasPoint c, DrawingWindow &window, Colour col, std::vector<std::vector<float>> &depth) {
@@ -230,6 +271,16 @@ void leftToRight(CanvasPoint &left, CanvasPoint &right, CanvasTriangle &t) {
     }
 }
 
+void filledTriangle(DrawingWindow &window){
+    CanvasTriangle t = randomCanvasPoint();
+    CanvasPoint left, right;
+    leftToRight(left, right, t);
+    Colour col = Colour(rand() % 256, rand() % 256, rand() % 256);
+    fillColour(true, left, right, t[0], window, col);
+    fillColour(false, left, right, t[2], window, col);
+    drawTriangle(window,t,Colour(255, 255, 255));
+}
+
 
 void filledTriangle(DrawingWindow &window, CanvasTriangle t, Colour col, std::vector<std::vector<float>> &depth){
     CanvasPoint left, right;
@@ -297,7 +348,7 @@ CanvasPoint getCanvasIntersectionPoint(glm::vec3 vertexPosition, float range) {
     return result;
 }
 
-void wireframeRender(DrawingWindow& window, std::vector<ModelTriangle> modelT) {
+void wireframe(DrawingWindow& window, std::vector<ModelTriangle> modelT,std::vector<std::vector<float>>& depth) {
     window.clearPixels();
     for(ModelTriangle modelTriangle : modelT) {
         CanvasPoint v0 = getCanvasIntersectionPoint(modelTriangle.vertices[0], 180);
@@ -308,7 +359,17 @@ void wireframeRender(DrawingWindow& window, std::vector<ModelTriangle> modelT) {
     }
 }
 
-void rasteriseRender(DrawingWindow& window, std::vector<ModelTriangle> modelT, std::vector<std::vector<float>>& depth) {
+void drawWireframe(DrawingWindow &window){
+    window.clearPixels();
+    for (size_t i = 0; i < HEIGHT; i++) {
+        std::fill(depth[i].begin(), depth[i].end(), INT32_MIN);
+    }
+    std::vector<ModelTriangle> obj = readObjFile("cornell-box.obj", 0.35);
+    wireframe(window, obj, depth);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+}
+
+void rasterise(DrawingWindow& window, std::vector<ModelTriangle> modelT, std::vector<std::vector<float>>& depth) {
 
     window.clearPixels();
     for(ModelTriangle modelTriangle : modelT) {
@@ -319,6 +380,15 @@ void rasteriseRender(DrawingWindow& window, std::vector<ModelTriangle> modelT, s
         CanvasTriangle t = CanvasTriangle(v0, v1, v2);
         filledTriangle(window, t, modelTriangle.colour,depth);
     }
+}
+
+void drawRasterise(DrawingWindow &window){
+    window.clearPixels();
+    for (size_t i = 0; i < HEIGHT; i++) {
+        std::fill(depth[i].begin(), depth[i].end(), INT32_MIN);
+    }
+    std::vector<ModelTriangle> obj = readObjFile("cornell-box.obj", 0.35);
+    rasterise(window,obj, depth);
 }
 
 void mapTexture(CanvasTriangle t, CanvasTriangle c, DrawingWindow &window){
@@ -377,6 +447,10 @@ void rotateCamera(bool xAxis, float value) {
     }
     cameraPosition = cameraPosition * mat;
 }
+
+//void lookAt()
+
+//void orbit()
 
 void draw(DrawingWindow &window) {
     window.clearPixels();
@@ -454,18 +528,18 @@ void drawColour(DrawingWindow &window) {
 
 // add an event handling function for several keys
 
-void handleEvent(SDL_Event event, DrawingWindow &window, std::vector<std::vector<float>>&depth) {
+void handleEvent(SDL_Event event, DrawingWindow &window) {
     if (event.type == SDL_KEYDOWN) {
         if (event.key.keysym.sym == SDLK_LEFT) std::cout << "LEFT" << std::endl;
         else if (event.key.keysym.sym == SDLK_RIGHT) std::cout << "RIGHT" << std::endl;
         else if (event.key.keysym.sym == SDLK_UP) std::cout << "UP" << std::endl;
         else if (event.key.keysym.sym == SDLK_DOWN) std::cout << "DOWN" << std::endl;
-        else if (event.key.keysym.sym == SDLK_u) unfilledTriangle(window,depth),std::cout << "Create Unfilled Triangle" << std::endl;
-        else if (event.key.keysym.sym == SDLK_f) filledTriangle(window,randomCanvasPoint(),randomColour(),depth),std::cout << "Create Filled Triangle" << std::endl;
-        else if (event.key.keysym.sym == SDLK_w) translateCamera(1, true);
-        else if (event.key.keysym.sym == SDLK_a) translateCamera(0, false);
-        else if (event.key.keysym.sym == SDLK_s) translateCamera(1, false);
-        else if (event.key.keysym.sym == SDLK_d) translateCamera(0, true);
+        else if (event.key.keysym.sym == SDLK_u) unfilledTriangle(window, depth),std::cout << "Create Unfilled Triangle" << std::endl;
+        else if (event.key.keysym.sym == SDLK_f) filledTriangle(window),std::cout << "Create Filled Triangle" << std::endl;
+        else if (event.key.keysym.sym == SDLK_w) translateCamera(1, false);
+        else if (event.key.keysym.sym == SDLK_a) translateCamera(0, true);
+        else if (event.key.keysym.sym == SDLK_s) translateCamera(1, true);
+        else if (event.key.keysym.sym == SDLK_d) translateCamera(0, false);
         else if (event.key.keysym.sym == SDLK_q) translateCamera(2, true);
         else if (event.key.keysym.sym == SDLK_e) translateCamera(2, false);
         else if (event.key.keysym.sym == SDLK_z) rotateCamera(false, -PI / 16);
@@ -481,7 +555,7 @@ void handleEvent(SDL_Event event, DrawingWindow &window, std::vector<std::vector
 int main(int argc, char *argv[]) {
     DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
     SDL_Event event;
-    std::vector<ModelTriangle> test = readObjFile("cornell-box.obj", 0.35);
+
     //draw(window);
 
 
@@ -510,10 +584,11 @@ int main(int argc, char *argv[]) {
     */
     while (true) {
         // We MUST poll for events - otherwise the window will freeze !
-        if (window.pollForInputEvents(event)) handleEvent(event, window, depth);
-        window.clearPixels();
+        if (window.pollForInputEvents(event)) handleEvent(event, window);
+
        // draw(window);
-        rasteriseRender(window,test,depth);
+        drawRasterise(window);
+        //drawWireframe(window);
         // Need to render the frame at the end, or nothing actually gets shown on the screen !
         window.renderFrame();
     }
