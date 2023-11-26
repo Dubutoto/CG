@@ -10,7 +10,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include <thread>
-
+#include <RayTriangleIntersection.h>
 
 #define WIDTH 320
 #define HEIGHT 320
@@ -106,6 +106,7 @@ std::vector<ModelTriangle> readObjFile(const std::string& filename, float scalin
     }
     return t;
 }
+// for filled and unfilled triangle in week 2 and 3(No depth)
 void drawLine (CanvasPoint from, CanvasPoint to, DrawingWindow &window, Colour col) {
 
     float xDiff = round(to.x - from.x);
@@ -483,6 +484,8 @@ void orbit() {
         lookAt();
     }
 }
+
+// RayTriangleIntersection getClosestIntersection()
 
 void draw(DrawingWindow &window) {
     window.clearPixels();
