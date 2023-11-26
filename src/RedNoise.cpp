@@ -18,9 +18,11 @@
 
 glm::vec3 cameraPosition = glm::vec3(0.0,0.0,4.0);
 float focalLength = 2.0 ;
-glm::mat3 camOrientation = glm::mat3(1.0);
+glm::mat3 camOrientation = glm::mat3(1, 0, 0,
+                                     0, 1, 0,
+                                     0, 0, 1);
 std::vector<std::vector<float>> depth(WIDTH, std::vector<float>(HEIGHT, 0));
-
+bool rotate = false;
 
 std::vector <float> interpolateSingleFloats(float from, float to, int numberOfValues){
     std::vector <float> result;
@@ -94,11 +96,11 @@ std::vector<ModelTriangle> readObjFile(const std::string& filename, float scalin
                            objVector[std::stoi(tokens[2]) - 1],
                            objVector[std::stoi(tokens[3]) - 1],col);
         }else if (tokens[0] == "usemtl") {
-            std::cout << line << std::endl;
+            //std::cout << line << std::endl;
             col = palette[tokens[1]];
         }
         else if (tokens[0] == "mtllib") {
-            std::cout << line << std::endl;
+           // std::cout << line << std::endl;
             palette = readMtlFile(tokens[1]);
         }
     }
@@ -407,16 +409,16 @@ void mapTexture(CanvasTriangle t, CanvasTriangle c, DrawingWindow &window){
     drawTriangle(window,calTriangle, Colour(255,255,255),depth);
 }
 
-void translateCamera(int where, bool positive) {
+void translateCamera(int i, bool positive) {
     // x
-    if (where == 0) {
+    if (i == 0) {
         if (positive) {
-            cameraPosition += glm::vec3(0.2, 0, 0);
+            cameraPosition += glm::vec3(0.4, 0, 0);
         } else {
             cameraPosition -= glm::vec3(0.2, 0, 0);
         }
         //y
-    } else if (where == 1) {
+    } else if (i == 1) {
         if (positive) {
             cameraPosition += glm::vec3(0, 0.2, 0);
         } else {
@@ -431,6 +433,7 @@ void translateCamera(int where, bool positive) {
         }
     }
 }
+
 
 void rotateCamera(bool xAxis, float value) {
     glm::mat3 mat;
@@ -448,24 +451,46 @@ void rotateCamera(bool xAxis, float value) {
     cameraPosition = cameraPosition * mat;
 }
 
-//void lookAt()
+void changeOri(bool xAxis, float value) {
+    glm::mat3 m;
+    if (xAxis) {
+        m = glm::mat3(
+                1, 0, 0,
+                0, cos(value), sin(value),
+                0, -sin(value), cos(value));
+    } else {
+        m = glm::mat3(
+                cos(value), 0, -sin(value),
+                0, 1, 0,
+                sin(value), 0, cos(value));
+    }
+    camOrientation = camOrientation * m;
+}
 
-//void orbit()
+void lookAt() {
+    camOrientation[2] = glm::normalize(cameraPosition);
+    camOrientation[1] = glm::normalize(glm::cross(camOrientation[2], camOrientation[0]));
+    camOrientation[0] = glm::normalize(glm::cross(glm::vec3(0,1,0), camOrientation[2]));
+    //forward - camOrientation[2]
+    //up - camOrientation[1]
+    //right - camOrientation[0]
+
+}
+
+void orbit() {
+    if (rotate) {
+        rotateCamera(false, -PI / 400);
+        lookAt();
+    }
+}
 
 void draw(DrawingWindow &window) {
     window.clearPixels();
 
-//wireFrame
+    drawRasterise(window);
+    orbit();
 
 
-
-     // wireframeRender(window, test);
-      //  rasteriseRender(window,test,depth);
-
-
-//Rasterised Render
-
-    // rasteriseRender(window,test);
     //std::vector<float> greyScales = interpolateSingleFloats(255, 0, WIDTH);
     //for (size_t y = 0; y < window.height; y++) {
     //for (size_t x = 0; x < window.width; x++) {
@@ -530,22 +555,24 @@ void drawColour(DrawingWindow &window) {
 
 void handleEvent(SDL_Event event, DrawingWindow &window) {
     if (event.type == SDL_KEYDOWN) {
-        if (event.key.keysym.sym == SDLK_LEFT) std::cout << "LEFT" << std::endl;
-        else if (event.key.keysym.sym == SDLK_RIGHT) std::cout << "RIGHT" << std::endl;
-        else if (event.key.keysym.sym == SDLK_UP) std::cout << "UP" << std::endl;
-        else if (event.key.keysym.sym == SDLK_DOWN) std::cout << "DOWN" << std::endl;
-        else if (event.key.keysym.sym == SDLK_u) unfilledTriangle(window, depth),std::cout << "Create Unfilled Triangle" << std::endl;
-        else if (event.key.keysym.sym == SDLK_f) filledTriangle(window),std::cout << "Create Filled Triangle" << std::endl;
-        else if (event.key.keysym.sym == SDLK_w) translateCamera(1, false);
-        else if (event.key.keysym.sym == SDLK_a) translateCamera(0, true);
-        else if (event.key.keysym.sym == SDLK_s) translateCamera(1, true);
-        else if (event.key.keysym.sym == SDLK_d) translateCamera(0, false);
-        else if (event.key.keysym.sym == SDLK_q) translateCamera(2, true);
-        else if (event.key.keysym.sym == SDLK_e) translateCamera(2, false);
-        else if (event.key.keysym.sym == SDLK_z) rotateCamera(false, -PI / 16);
-        else if (event.key.keysym.sym == SDLK_x) rotateCamera(false, PI / 16);
-        else if (event.key.keysym.sym == SDLK_c) rotateCamera(true, -PI / 16);
-        else if (event.key.keysym.sym == SDLK_v) rotateCamera(true, PI / 16);
+        if (event.key.keysym.sym == SDLK_LEFT) translateCamera(0, true);
+        else if (event.key.keysym.sym == SDLK_RIGHT) translateCamera(0, false);
+        else if (event.key.keysym.sym == SDLK_UP)  translateCamera(1, false);
+        else if (event.key.keysym.sym == SDLK_DOWN) translateCamera(1, true);
+        // else if (event.key.keysym.sym == SDLK_u) unfilledTriangle(window, depth),std::cout << "Create Unfilled Triangle" << std::endl;
+        // else if (event.key.keysym.sym == SDLK_f) filledTriangle(window),std::cout << "Create Filled Triangle" << std::endl;
+        else if (event.key.keysym.sym == SDLK_w) rotateCamera(true, PI / 16);
+        else if (event.key.keysym.sym == SDLK_a) rotateCamera(false, -PI / 16);
+        else if (event.key.keysym.sym == SDLK_s) rotateCamera(true, -PI / 16);
+        else if (event.key.keysym.sym == SDLK_d) rotateCamera(false, PI / 16);
+        else if (event.key.keysym.sym == SDLK_n) translateCamera(2, true);
+        else if (event.key.keysym.sym == SDLK_m) translateCamera(2, false);
+        else if (event.key.keysym.sym == SDLK_l) lookAt();
+        else if (event.key.keysym.sym == SDLK_o) rotate = !rotate; //orbit rotate -> false
+        else if (event.key.keysym.sym == SDLK_t) changeOri(true, -PI / 16);
+        else if (event.key.keysym.sym == SDLK_f) changeOri(false, -PI / 16);
+        else if (event.key.keysym.sym == SDLK_g) changeOri(true, PI / 16);
+        else if (event.key.keysym.sym == SDLK_h) changeOri(false, PI / 16);
     } else if (event.type == SDL_MOUSEBUTTONDOWN) {
         window.savePPM("output.ppm");
         window.saveBMP("output.bmp");
@@ -586,9 +613,9 @@ int main(int argc, char *argv[]) {
         // We MUST poll for events - otherwise the window will freeze !
         if (window.pollForInputEvents(event)) handleEvent(event, window);
 
-       // draw(window);
-        drawRasterise(window);
-        //drawWireframe(window);
+        draw(window);
+
+
         // Need to render the frame at the end, or nothing actually gets shown on the screen !
         window.renderFrame();
     }
