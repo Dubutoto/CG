@@ -485,7 +485,38 @@ void orbit() {
     }
 }
 
-// RayTriangleIntersection getClosestIntersection()
+RayTriangleIntersection getClosestIntersection(glm::vec3 position, glm::vec3 direction, std::vector<ModelTriangle> triangle, int triangleIndex = -1){
+    RayTriangleIntersection result; // intersection that is closest to the camera
+    float t = FLT_MAX; //initialize t -> maximum value
+    for(size_t i = 0; i < triangle.size(); i++) {
+        glm::vec3 e0 = (triangle[i].vertices[1] - triangle[i].vertices[0]);
+        glm::vec3 e1 = (triangle[i].vertices[2] - triangle[i].vertices[0]);
+        glm::vec3 SPVector = position - triangle[i].vertices[0];
+        glm::mat3 DEMatrix(-direction, e0, e1);
+        glm::vec3 possibleSolution = glm::inverse(DEMatrix) * SPVector;
+       //[t,u,v]
+
+        if (possibleSolution[0] < t) {
+            float u = possibleSolution[1];
+            float v = possibleSolution[2];
+            // check (u,v) is in the triangle
+            bool insideTriangle = (u >= 0.0) && (v >= 0.0) && (u + v <= 1.0);
+            // update when (u,v) is in the triangle and distance is positive
+            if (insideTriangle && possibleSolution[0] > 0 && triangleIndex != i) {
+                // update t
+                t = possibleSolution[0];
+                //r = s + t * d
+                glm::vec3 intersectionPoint = triangle[i].vertices[0] + u * e0 + v * e1;
+                // update intersection point
+                result.intersectionPoint = intersectionPoint;
+                result.intersectedTriangle = triangle[i];
+                result.triangleIndex = i;
+                result.distanceFromCamera = t;
+            }
+        }
+    }
+    return result;
+}
 
 void draw(DrawingWindow &window) {
     window.clearPixels();
