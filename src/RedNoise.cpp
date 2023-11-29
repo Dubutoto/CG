@@ -518,6 +518,20 @@ RayTriangleIntersection getClosestIntersection(glm::vec3 position, glm::vec3 dir
     return result;
 }
 
+void rayTrace(DrawingWindow &window, std::vector<ModelTriangle>& modelT, glm::vec3 cameraPosition, float focalLength, float range){
+    for(int y = 0; y < HEIGHT; y++) {
+        for(int x = 0; x < WIDTH; x++) {
+
+            glm::vec3 rayVec = glm::vec3(WIDTH / 2 - x, y - HEIGHT / 2, focalLength * range);
+            glm::vec3 direction = glm::normalize(-rayVec);
+            RayTriangleIntersection closestIntersection = getClosestIntersection(cameraPosition, cameraPosition, modelT);
+            Colour colour = closestIntersection.intersectedTriangle.colour;
+            uint32_t col = (255 << 24) + (colour.red << 16) + (colour.green << 8) + colour.blue;
+            window.setPixelColour(x, y, col);
+        }
+    }
+}
+
 void draw(DrawingWindow &window) {
     window.clearPixels();
 
