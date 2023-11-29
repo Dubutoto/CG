@@ -524,7 +524,7 @@ void rayTrace(DrawingWindow &window, std::vector<ModelTriangle>& modelT, glm::ve
 
             glm::vec3 rayVec = glm::vec3(WIDTH / 2 - x, y - HEIGHT / 2, focalLength * range);
             glm::vec3 direction = glm::normalize(-rayVec);
-            RayTriangleIntersection closestIntersection = getClosestIntersection(cameraPosition, cameraPosition, modelT);
+            RayTriangleIntersection closestIntersection = getClosestIntersection(cameraPosition, direction, modelT);
             Colour colour = closestIntersection.intersectedTriangle.colour;
             uint32_t col = (255 << 24) + (colour.red << 16) + (colour.green << 8) + colour.blue;
             window.setPixelColour(x, y, col);
@@ -532,10 +532,20 @@ void rayTrace(DrawingWindow &window, std::vector<ModelTriangle>& modelT, glm::ve
     }
 }
 
+void drawRayTrace(DrawingWindow &window){
+    window.clearPixels();
+    for (size_t i = 0; i < HEIGHT; i++) {
+        std::fill(depth[i].begin(), depth[i].end(), INT32_MIN);
+    }
+    std::vector<ModelTriangle> obj = readObjFile("cornell-box.obj", 0.35);
+    rayTrace(window,obj,cameraPosition,150,180);
+}
+
 void draw(DrawingWindow &window) {
     window.clearPixels();
 
     drawRasterise(window);
+   // drawRayTrace(window);
     orbit();
 
 
