@@ -17,6 +17,7 @@
 #define PI 3.1415926
 
 glm::vec3 cameraPosition = glm::vec3(0.0,0.0,4.0);
+glm::vec3 lightPosition = glm::vec3(0.0,0.4,0.6);
 float focalLength = 2.0 ;
 glm::mat3 camOrientation = glm::mat3(1, 0, 0,
                                      0, 1, 0,
@@ -24,6 +25,10 @@ glm::mat3 camOrientation = glm::mat3(1, 0, 0,
 std::vector<std::vector<float>> depth(WIDTH, std::vector<float>(HEIGHT, 0));
 bool rotate = false;
 
+
+uint32_t colouring(Colour col) {
+    return (255 << 24) + (int(col.red) << 16) + (int(col.green) << 8) + int(col.blue);
+}
 std::vector <float> interpolateSingleFloats(float from, float to, int numberOfValues){
     std::vector <float> result;
     float term = ((to-from)/ float (numberOfValues-1));
@@ -392,6 +397,7 @@ void drawRasterise(DrawingWindow &window){
     }
     std::vector<ModelTriangle> obj = readObjFile("cornell-box.obj", 0.35);
     rasterise(window,obj, depth);
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
 }
 
 void mapTexture(CanvasTriangle t, CanvasTriangle c, DrawingWindow &window){
@@ -485,67 +491,103 @@ void orbit() {
     }
 }
 
-RayTriangleIntersection getClosestIntersection(glm::vec3 position, glm::vec3 direction, std::vector<ModelTriangle> triangle, int triangleIndex = -1){
-    RayTriangleIntersection result; // intersection that is closest to the camera
-    float t = FLT_MAX; //initialize t -> maximum value
-    for(size_t i = 0; i < triangle.size(); i++) {
-        glm::vec3 e0 = (triangle[i].vertices[1] - triangle[i].vertices[0]);
-        glm::vec3 e1 = (triangle[i].vertices[2] - triangle[i].vertices[0]);
-        glm::vec3 SPVector = position - triangle[i].vertices[0];
-        glm::mat3 DEMatrix(-direction, e0, e1);
-        glm::vec3 possibleSolution = glm::inverse(DEMatrix) * SPVector;
-       //[t,u,v]
+RayTriangleIntersection getClosestIntersection(glm::vec3& rayDirection, std::vector<ModelTriangle> triangles, glm::vec3 position, int triangleIndex = -1) {
 
-        if (possibleSolution[0] < t) {
-            float u = possibleSolution[1];
-            float v = possibleSolution[2];
-            // check (u,v) is in the triangle
-            bool insideTriangle = (u >= 0.0) && (v >= 0.0) && (u + v <= 1.0);
-            // update when (u,v) is in the triangle and distance is positive
+    RayTriangleIntersection result = RayTriangleIntersection(glm::vec3(0, 0, 0), FLT_MAX, triangles[0], -1);
+
+    for (size_t i = 0; i < triangles.size(); i++) {
+        glm::vec3 e0 = triangles[i].vertices[1] - triangles[i].vertices[0];
+        glm::vec3 e1 = triangles[i].vertices[2] - triangles[i].vertices[0];
+        glm::vec3 SPVector = position - triangles[i].vertices[0];
+        glm::mat3 DEMatrix(-rayDirection, e0, e1);
+        glm::vec3 possibleSolution = glm::inverse(DEMatrix) * SPVector;
+
+        if (possibleSolution[0] < result.distanceFromCamera) {
+            // barycentric 좌표 (u, v)가 유효한지 확인
+            bool insideTriangle = (possibleSolution[1] >= 0.0) && (possibleSolution[2] >= 0.0)
+                                  && (possibleSolution[1] + possibleSolution[2] <= 1.0);
+
+            // 유효한 교차점이며, 양수인 거리이며 현재 처리 중인 삼각형이 아닌 경우 업데이트
             if (insideTriangle && possibleSolution[0] > 0 && triangleIndex != i) {
-                // update t
-                t = possibleSolution[0];
-                //r = s + t * d
-                glm::vec3 intersectionPoint = triangle[i].vertices[0] + u * e0 + v * e1;
-                // update intersection point
-                result.intersectionPoint = intersectionPoint;
-                result.intersectedTriangle = triangle[i];
-                result.triangleIndex = i;
-                result.distanceFromCamera = t;
+                result = {triangles[i].vertices[0] + possibleSolution[1] * e0 + possibleSolution[2] * e1,
+                          possibleSolution[0], triangles[i], i};
             }
         }
     }
     return result;
 }
 
-void rayTrace(DrawingWindow &window, std::vector<ModelTriangle>& modelT, glm::vec3 cameraPosition, float focalLength, float range){
-    for(int y = 0; y < HEIGHT; y++) {
-        for(int x = 0; x < WIDTH; x++) {
+glm::vec3 rayCoordinate(int width, int height, float focalLength, float range) {
+    glm::vec3 rayDirection;
+    rayDirection.x = (width - (float (WIDTH)/2)) * 1.0 / range;
+    rayDirection.y = (height - (float (HEIGHT)/2)) * -1.0 / range;
+    rayDirection.z = - focalLength;
 
-            glm::vec3 rayVec = glm::vec3(WIDTH / 2 - x, y - HEIGHT / 2, focalLength * range);
-            glm::vec3 direction = glm::normalize(-rayVec);
-            RayTriangleIntersection closestIntersection = getClosestIntersection(cameraPosition, direction, modelT);
-            Colour colour = closestIntersection.intersectedTriangle.colour;
-            uint32_t col = (255 << 24) + (colour.red << 16) + (colour.green << 8) + colour.blue;
-            window.setPixelColour(x, y, col);
+    return camOrientation * rayDirection;
+}
+
+float proxiLighting(glm::vec3 trianglePoint, glm::vec3 normal) {
+    float brightLength = glm::length(lightPosition - trianglePoint);
+    float lightIntensity = 15 / (4 * M_PI * brightLength * brightLength);
+    if (lightIntensity > 1) lightIntensity = 1;
+    return lightIntensity;
+}
+
+bool isInShadow(const RayTriangleIntersection& lightPoint, const glm::vec3& lightPosition, const RayTriangleIntersection& t) {
+    return lightPoint.distanceFromCamera >= glm::distance(lightPosition, t.intersectionPoint) // t= closestIntersectTriangle
+           && t.triangleIndex != lightPoint.triangleIndex;
+}
+
+void lighting(Colour& colour, float brightness) {
+    brightness = std::max(brightness, 0.0f);
+    colour.red *= brightness;
+    colour.blue *= brightness;
+    colour.green *= brightness;
+}
+
+
+void rayTrace(DrawingWindow &window, std::vector<ModelTriangle>& modelT, glm::vec3 cameraPosition){
+
+    for (size_t x = 0; x < HEIGHT; x++) {
+        for (size_t y = 0; y < WIDTH; y++) {
+            glm::vec3 rayDirection = glm::normalize(rayCoordinate(x, y, focalLength, 60) - cameraPosition);
+            RayTriangleIntersection closestIntersectTriangle = getClosestIntersection(rayDirection, modelT,cameraPosition);
+
+            glm::vec3 lightDirection = glm::normalize(lightPosition - closestIntersectTriangle.intersectionPoint);
+            RayTriangleIntersection lightPoint = getClosestIntersection(lightDirection, modelT,closestIntersectTriangle.intersectionPoint, closestIntersectTriangle.triangleIndex);
+
+            ModelTriangle t = closestIntersectTriangle.intersectedTriangle;
+            glm::vec3 u = t.vertices[1] - t.vertices[0]; // u: line1 v: line2
+            glm::vec3 v = t.vertices[2] - t.vertices[0];
+            t.normal = glm::cross(u, v);
+
+            if (isInShadow(lightPoint, lightPosition, closestIntersectTriangle)) {
+                float brightness = std::max(proxiLighting(closestIntersectTriangle.intersectionPoint, t.normal), 0.0f);
+
+                Colour colour = t.colour;
+                lighting(colour, brightness);
+
+                if (closestIntersectTriangle.distanceFromCamera != FLT_MAX) {
+                    window.setPixelColour(x, y, colouring(colour));
+                }
+            }
         }
     }
 }
 
 void drawRayTrace(DrawingWindow &window){
     window.clearPixels();
-    for (size_t i = 0; i < HEIGHT; i++) {
-        std::fill(depth[i].begin(), depth[i].end(), INT32_MIN);
-    }
     std::vector<ModelTriangle> obj = readObjFile("cornell-box.obj", 0.35);
-    rayTrace(window,obj,cameraPosition,150,180);
+    rayTrace(window,obj,cameraPosition);
+    lookAt();
+
 }
 
 void draw(DrawingWindow &window) {
     window.clearPixels();
 
-    drawRasterise(window);
-   // drawRayTrace(window);
+    //drawRasterise(window);
+    drawRayTrace(window);
     orbit();
 
 
