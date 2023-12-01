@@ -356,6 +356,15 @@ CanvasPoint getCanvasIntersectionPoint(glm::vec3 vertexPosition, float range) {
     return result;
 }
 
+void lookAt() {
+    camOrientation[2] = glm::normalize(cameraPosition);
+    camOrientation[1] = glm::normalize(glm::cross(camOrientation[2], camOrientation[0]));
+    camOrientation[0] = glm::normalize(glm::cross(glm::vec3(0,1,0), camOrientation[2]));
+    //forward - camOrientation[2]
+    //up - camOrientation[1]
+    //right - camOrientation[0]
+
+}
 void wireframe(DrawingWindow& window, std::vector<ModelTriangle> modelT,std::vector<std::vector<float>>& depth) {
     window.clearPixels();
     for(ModelTriangle modelTriangle : modelT) {
@@ -374,7 +383,8 @@ void drawWireframe(DrawingWindow &window){
     }
     std::vector<ModelTriangle> obj = readObjFile("cornell-box.obj", 0.35);
     wireframe(window, obj, depth);
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    lookAt();
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
 }
 
 void rasterise(DrawingWindow& window, std::vector<ModelTriangle> modelT, std::vector<std::vector<float>>& depth) {
@@ -397,6 +407,7 @@ void drawRasterise(DrawingWindow &window){
     }
     std::vector<ModelTriangle> obj = readObjFile("cornell-box.obj", 0.35);
     rasterise(window,obj, depth);
+    lookAt();
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
 }
 
@@ -474,15 +485,7 @@ void changeOri(bool xAxis, float value) {
     camOrientation = camOrientation * m;
 }
 
-void lookAt() {
-    camOrientation[2] = glm::normalize(cameraPosition);
-    camOrientation[1] = glm::normalize(glm::cross(camOrientation[2], camOrientation[0]));
-    camOrientation[0] = glm::normalize(glm::cross(glm::vec3(0,1,0), camOrientation[2]));
-    //forward - camOrientation[2]
-    //up - camOrientation[1]
-    //right - camOrientation[0]
 
-}
 
 void orbit() {
     if (rotate) {
@@ -582,12 +585,20 @@ void drawRayTrace(DrawingWindow &window){
     lookAt();
 
 }
-
+int drawing = 0;
 void draw(DrawingWindow &window) {
     window.clearPixels();
-
-    //drawRasterise(window);
-    drawRayTrace(window);
+    switch (drawing) {
+        case 1:
+            drawWireframe(window);
+            break;
+        case 2:
+            drawRasterise(window);
+            break;
+        case 3:
+            drawRayTrace(window);
+            break;
+    }
     orbit();
 
 
@@ -673,6 +684,9 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
         else if (event.key.keysym.sym == SDLK_f) changeOri(false, -PI / 16);
         else if (event.key.keysym.sym == SDLK_g) changeOri(true, PI / 16);
         else if (event.key.keysym.sym == SDLK_h) changeOri(false, PI / 16);
+        else if (event.key.keysym.sym == SDLK_1) drawing = 1;
+        else if (event.key.keysym.sym == SDLK_2) drawing = 2;
+        else if (event.key.keysym.sym == SDLK_3) drawing = 3;
     } else if (event.type == SDL_MOUSEBUTTONDOWN) {
         window.savePPM("output.ppm");
         window.saveBMP("output.bmp");
