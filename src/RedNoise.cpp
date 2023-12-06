@@ -529,7 +529,7 @@ glm::vec3 rayCoordinate(int width, int height, float focalLength, float range) {
     return camOrientation * rayDirection;
 }
 
-float proxiLighting(glm::vec3 trianglePoint, glm::vec3 normal) {
+float proximityLighting(glm::vec3 trianglePoint, glm::vec3 normal) {
     float brightLength = glm::length(lightPosition - trianglePoint);
     float lightIntensity = 15 / (4 * M_PI * brightLength * brightLength);
     if (lightIntensity > 1) lightIntensity = 1;
@@ -542,12 +542,11 @@ bool isInShadow(const RayTriangleIntersection& lightPoint, const glm::vec3& ligh
 }
 
 void lighting(Colour& colour, float brightness) {
-    brightness = std::max(brightness, 0.0f);
+    brightness = std::max(brightness, 0.4f);
     colour.red *= brightness;
     colour.blue *= brightness;
     colour.green *= brightness;
 }
-
 
 void rayTrace(DrawingWindow &window, std::vector<ModelTriangle>& modelT, glm::vec3 cameraPosition){
 
@@ -565,13 +564,14 @@ void rayTrace(DrawingWindow &window, std::vector<ModelTriangle>& modelT, glm::ve
             t.normal = glm::cross(u, v);
 
             if (isInShadow(lightPoint, lightPosition, closestIntersectTriangle)) {
-                float brightness = std::max(proxiLighting(closestIntersectTriangle.intersectionPoint, t.normal), 0.0f);
+                float brightness = std::max(proximityLighting(closestIntersectTriangle.intersectionPoint, t.normal), 0.0f);
 
                 Colour colour = t.colour;
                 lighting(colour, brightness);
 
                 if (closestIntersectTriangle.distanceFromCamera != FLT_MAX) {
                     window.setPixelColour(x, y, colouring(colour));
+                 //   else{} angleofIncident
                 }
             }
         }
@@ -580,14 +580,19 @@ void rayTrace(DrawingWindow &window, std::vector<ModelTriangle>& modelT, glm::ve
 
 void drawRayTrace(DrawingWindow &window){
     window.clearPixels();
+    for (size_t i = 0; i < HEIGHT; i++) {
+        std::fill(::depth[i].begin(), ::depth[i].end(), INT32_MIN);
+    }
     std::vector<ModelTriangle> obj = readObjFile("cornell-box.obj", 0.35);
     rayTrace(window,obj,cameraPosition);
     lookAt();
-
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
 }
 int drawing = 0;
+
 void draw(DrawingWindow &window) {
-    window.clearPixels();
+
+    orbit();
     switch (drawing) {
         case 1:
             drawWireframe(window);
@@ -599,7 +604,7 @@ void draw(DrawingWindow &window) {
             drawRayTrace(window);
             break;
     }
-    orbit();
+
 
 
     //std::vector<float> greyScales = interpolateSingleFloats(255, 0, WIDTH);
@@ -676,14 +681,20 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
         else if (event.key.keysym.sym == SDLK_a) rotateCamera(false, -PI / 16);
         else if (event.key.keysym.sym == SDLK_s) rotateCamera(true, -PI / 16);
         else if (event.key.keysym.sym == SDLK_d) rotateCamera(false, PI / 16);
-        else if (event.key.keysym.sym == SDLK_n) translateCamera(2, true);
-        else if (event.key.keysym.sym == SDLK_m) translateCamera(2, false);
+        else if (event.key.keysym.sym == SDLK_4) translateCamera(2, true);
+        else if (event.key.keysym.sym == SDLK_5) translateCamera(2, false);
         else if (event.key.keysym.sym == SDLK_l) lookAt();
         else if (event.key.keysym.sym == SDLK_o) rotate = !rotate; //orbit rotate -> false
         else if (event.key.keysym.sym == SDLK_t) changeOri(true, -PI / 16);
         else if (event.key.keysym.sym == SDLK_f) changeOri(false, -PI / 16);
         else if (event.key.keysym.sym == SDLK_g) changeOri(true, PI / 16);
         else if (event.key.keysym.sym == SDLK_h) changeOri(false, PI / 16);
+        else if (event.key.keysym.sym == SDLK_z) lightPosition[0] += 0.1;
+        else if (event.key.keysym.sym == SDLK_x) lightPosition[0] -= 0.1;
+        else if (event.key.keysym.sym == SDLK_c) lightPosition[1] += 0.1;
+        else if (event.key.keysym.sym == SDLK_v) lightPosition[1] -= 0.1;
+        else if (event.key.keysym.sym == SDLK_b) lightPosition[2] += 0.1;
+        else if (event.key.keysym.sym == SDLK_n) lightPosition[2] -= 0.1;
         else if (event.key.keysym.sym == SDLK_1) drawing = 1;
         else if (event.key.keysym.sym == SDLK_2) drawing = 2;
         else if (event.key.keysym.sym == SDLK_3) drawing = 3;
