@@ -12,8 +12,8 @@
 #include <thread>
 #include <RayTriangleIntersection.h>
 
-#define WIDTH 320
-#define HEIGHT 320
+#define WIDTH 640
+#define HEIGHT 480
 #define PI 3.1415926
 
 glm::vec3 cameraPosition = glm::vec3(0.0,0.0,4.0);
@@ -105,7 +105,7 @@ std::vector<ModelTriangle> readObjFile(const std::string& filename, float scalin
             col = palette[tokens[1]];
         }
         else if (tokens[0] == "mtllib") {
-           // std::cout << line << std::endl;
+            // std::cout << line << std::endl;
             palette = readMtlFile(tokens[1]);
         }
     }
@@ -153,10 +153,10 @@ void drawLine (CanvasPoint from, CanvasPoint to, DrawingWindow &window, Colour c
             }
         }
 
-       // if( x >= 0 && y >= 0 && y < depth.size() && x < depth[y].size() && depth[y][x] < z) {
-         //   window.setPixelColour(round(x), round(y), colour);
-         //   depth[y][x]  = z;
-      //  }
+        // if( x >= 0 && y >= 0 && y < depth.size() && x < depth[y].size() && depth[y][x] < z) {
+        //   window.setPixelColour(round(x), round(y), colour);
+        //   depth[y][x]  = z;
+        //  }
     }
 }
 
@@ -407,7 +407,7 @@ void drawRasterise(DrawingWindow &window){
     }
     std::vector<ModelTriangle> obj = readObjFile("cornell-box.obj", 0.35);
     rasterise(window,obj, depth);
-    lookAt();
+    //lookAt();
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
 }
 
@@ -571,7 +571,7 @@ void rayTrace(DrawingWindow &window, std::vector<ModelTriangle>& modelT, glm::ve
 
                 if (closestIntersectTriangle.distanceFromCamera != FLT_MAX) {
                     window.setPixelColour(x, y, colouring(colour));
-                 //   else{} angleofIncident
+                    //   else{} angleofIncident
                 }
             }
         }
@@ -592,18 +592,7 @@ int drawing = 0;
 
 void draw(DrawingWindow &window) {
 
-    orbit();
-    switch (drawing) {
-        case 1:
-            drawWireframe(window);
-            break;
-        case 2:
-            drawRasterise(window);
-            break;
-        case 3:
-            drawRayTrace(window);
-            break;
-    }
+
 
 
 
@@ -671,12 +660,12 @@ void drawColour(DrawingWindow &window) {
 
 void handleEvent(SDL_Event event, DrawingWindow &window) {
     if (event.type == SDL_KEYDOWN) {
-        if (event.key.keysym.sym == SDLK_LEFT) translateCamera(0, true);
-        else if (event.key.keysym.sym == SDLK_RIGHT) translateCamera(0, false);
-        else if (event.key.keysym.sym == SDLK_UP)  translateCamera(1, false);
-        else if (event.key.keysym.sym == SDLK_DOWN) translateCamera(1, true);
-        // else if (event.key.keysym.sym == SDLK_u) unfilledTriangle(window, depth),std::cout << "Create Unfilled Triangle" << std::endl;
-        // else if (event.key.keysym.sym == SDLK_f) filledTriangle(window),std::cout << "Create Filled Triangle" << std::endl;
+        if (event.key.keysym.sym == SDLK_LEFT) cameraPosition[0] = cameraPosition[0] + 0.1;
+        else if (event.key.keysym.sym == SDLK_RIGHT) cameraPosition[0] = cameraPosition[0] - 0.1;
+        else if (event.key.keysym.sym == SDLK_UP)  cameraPosition[1] = cameraPosition[1] - 0.1;
+        else if (event.key.keysym.sym == SDLK_DOWN) cameraPosition[1] = cameraPosition[1] + 0.1;
+            // else if (event.key.keysym.sym == SDLK_u) unfilledTriangle(window, depth),std::cout << "Create Unfilled Triangle" << std::endl;
+            // else if (event.key.keysym.sym == SDLK_f) filledTriangle(window),std::cout << "Create Filled Triangle" << std::endl;
         else if (event.key.keysym.sym == SDLK_w) rotateCamera(true, PI / 16);
         else if (event.key.keysym.sym == SDLK_a) rotateCamera(false, -PI / 16);
         else if (event.key.keysym.sym == SDLK_s) rotateCamera(true, -PI / 16);
@@ -707,7 +696,7 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
 int main(int argc, char *argv[]) {
     DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
     SDL_Event event;
-
+    drawRasterise(window);
     //draw(window);
 
 
@@ -737,8 +726,18 @@ int main(int argc, char *argv[]) {
     while (true) {
         // We MUST poll for events - otherwise the window will freeze !
         if (window.pollForInputEvents(event)) handleEvent(event, window);
-
-        draw(window);
+        orbit();
+        switch (drawing) {
+            case 1:
+                drawWireframe(window);
+                break;
+            case 2:
+                drawRasterise(window);
+                break;
+            case 3:
+                drawRayTrace(window);
+                break;
+        }
 
 
         // Need to render the frame at the end, or nothing actually gets shown on the screen !
